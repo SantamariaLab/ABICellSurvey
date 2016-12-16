@@ -10,6 +10,7 @@ runAnalyses = True
 
 print "Importing..."
 import sys
+from allensdk.api.queries.cell_types_api import CellTypesApi
 from allensdk.core.cell_types_cache import CellTypesCache
 from allensdk.ephys.feature_extractor import EphysFeatureExtractor
 import mysql.connector
@@ -199,7 +200,37 @@ for specimen in specimens:
     print 'Processing:', specimen
     data_set = ctc.get_ephys_data(specimen)
     print data_set
+    
+    morphFeat = ctc.get_morphology_features()
+#     print "morphFeat:", morphFeat
+    for spec in morphFeat:
+        intspec = int(spec['specimen_id']) 
+        if intspec==specimen:
+            print "specimen:", intspec, "  soma_surface:", spec['soma_surface']
+            break
 
+    # START HERE ---- this cell is a dictionary that has most of the "other" non-sweep stuff
+    # we need such as cell averages, rheobase info, transgenic line, hemisphere, 
+    # age, sex, graph order, dendrite type, area
+    ct = CellTypesApi()
+    cells = ct.list_cells(require_reconstruction=True)
+    print type(cells)
+#     print cells
+    for cell in cells:
+#         print type(cell)
+#         print "cell:", cell
+#         break
+        datasets = cell['data_sets']
+        for dataset in datasets:
+#             print type(dataset)
+            dsspec = dataset['specimen_id']
+            print "dataset specimen_id:", dsspec 
+            if dsspec == specimen:
+                print "cell:", cell
+                break
+        
+    sys.exit("Error message")
+    
     # Add the specimen to the database
     insertStr = 'insert into specimens (id, abiSpecimenID) values (%s, %s)'
     insertData = (0, specimen)
