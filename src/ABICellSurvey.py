@@ -10,13 +10,18 @@ runAnalyses = True
 
 print "Importing..."
 import sys
-from allensdk.api.queries.cell_types_api import CellTypesApi
+# from allensdk.api.queries.cell_types_api import CellTypesApi
+from allensdk.ephys.extract_cell_features import extract_cell_features
 from allensdk.core.cell_types_cache import CellTypesCache
 from allensdk.ephys.feature_extractor import EphysFeatureExtractor
+from collections import defaultdict
+
 import mysql.connector
 import traceback
 import numpy as np
 from numpyconversion import NumpyMySQLConverter
+
+from pprint import pprint
 
 #### Create the database from scratch
 # [1]
@@ -29,7 +34,6 @@ try:
                                   host='localhost', database=databaseName,
                                   converter_class=NumpyMySQLConverter)
     print "Connection complete"
-#     cnx.set_converter_class(NumpyMySQLConverter)
     cursobj = cnx.cursor()
 except:
     cnx = mysql.connector.connect(user='root', password='Uni53mad',
@@ -48,9 +52,19 @@ if redoTables:
     print "Dropping all tables"
     
     try:
-        mycmd = 'DROP TABLE featureExtractions'
+        mycmd = 'DROP TABLE specimenFXs'
         cursobj.execute(mycmd)
-        print "featureExtractions table dropped"
+        print "specimenFXs table dropped"
+    except: 
+        if useTraceback:
+            traceback.print_exc()
+        
+        pass
+    
+    try:
+        mycmd = 'DROP TABLE experimentFXs'
+        cursobj.execute(mycmd)
+        print "experimentFXs table dropped"
     except: 
         if useTraceback:
             traceback.print_exc()
@@ -77,13 +91,43 @@ if redoTables:
             
         pass
 
+    try:
+        mycmd = 'DROP TABLE donors'
+        cursobj.execute(mycmd)
+        print "donors table dropped"
+    except: 
+        if useTraceback:
+            traceback.print_exc()
+            
+        pass
+
     # -----
     print "Creating tables"
    
+    # Table donors
+    mycmd = ('''CREATE TABLE donors (''' + 
+             '''id int(11) NOT NULL AUTO_INCREMENT, ''' + 
+             '''abiDonorID int(11), ''' + 
+             '''sex char(4), ''' + 
+             '''name char(100), ''' + 
+             '''PRIMARY KEY (id)) ENGINE=InnoDB''')
+    try:
+        cursobj.execute(mycmd)
+        print "Table donors created"
+    except:
+        if useTraceback:
+            traceback.print_exc()
+            
+        pass
+        print "Table donors not created"
+
+
     # Table specimens
     mycmd = ('''CREATE TABLE specimens (''' + 
              '''id int(11) NOT NULL AUTO_INCREMENT, ''' + 
-             '''abiSpecimenID int(11), ''' + 
+             '''donorID int(11), ''' + 
+             '''abiSpecimenID int(11), ''' +
+             '''FOREIGN KEY (donorID) REFERENCES donors (id) ON DELETE CASCADE, ''' +  
              '''PRIMARY KEY (id)) ENGINE=InnoDB''')
     try:
         cursobj.execute(mycmd)
@@ -97,12 +141,11 @@ if redoTables:
 
 
     # Table experiments
-    # Temporary subset of all features for easier development
     mycmd = ('''CREATE TABLE experiments (''' + 
              '''id int(11) NOT NULL AUTO_INCREMENT, ''' + 
              '''specimenIDX int(11) NOT NULL, ''' +
              '''abiExperimentID int(11), ''' +
-             '''fxID int(11), ''' +
+             '''expFXID int(11), ''' +          # probably not necessary
              '''stimulusType char(100), ''' + 
              '''stimCurrent double, ''' +
              '''FOREIGN KEY(specimenIDX) REFERENCES specimens(id) ON DELETE CASCADE, ''' + 
@@ -118,35 +161,116 @@ if redoTables:
         print "Table experiments not created"
 
 
-    # Table featureExtractions
-    # Temporary subset of all features for easier development
-    mycmd = ('''CREATE TABLE featureExtractions (''' + 
-             '''fxID int(11) NOT NULL AUTO_INCREMENT, ''' + 
-             '''expID int(11) NOT NULL, ''' + 
-             '''hasSpikes bool, ''' + 
-             '''numSpikes int(11), ''' +
-             '''latency double, ''' + 
-             '''ISIMean double, ''' + 
-             '''ISIFirst double, ''' + 
-             '''ISICV double, ''' + 
-#              '''hasBursts bool, ''' + 
-#              '''numBursts int(11), ''' + 
-#              '''hasPauses bool, ''' + 
-#              '''numPauses int(11), ''' + 
-             '''adaptation double, ''' + 
-             '''threshold double, ''' +
-             '''FOREIGN KEY(expID) REFERENCES experiments(id) ON DELETE CASCADE, ''' +
-             '''PRIMARY KEY (fxID)) ENGINE=InnoDB''')
+    # Table specimenFXs
+    # Features specific to cell level (typically average, or any)
+    mycmd = ('''CREATE TABLE specimenFXs (''' + 
+             '''id int(11) NOT NULL AUTO_INCREMENT, ''' + 
+             '''specID int(11) NOT NULL, ''' + 
+#              '''abiFXID int(11) NOT NULL, ''' + 
+             '''hasSpikes bool, ''' +
+#              '''adaptation double, ''' + 
+#              '''avg_isi double, ''' + 
+#              '''dendrite_type bool, ''' + 
+#              '''electrode_0_pa double, ''' + 
+#              '''f_i_curve_slope double, ''' + 
+#              '''fast_trough_t_long_square double, ''' + 
+#              '''fast_trough_t_ramp double, ''' + 
+#              '''fast_trough_t_short_square double, ''' + 
+#              '''fast_trough_v_long_square double, ''' + 
+#              '''fast_trough_v_ramp double, ''' + 
+#              '''fast_trough_v_short_square double, ''' + 
+#              '''has_burst bool, ''' + 
+#              '''has_delay bool, ''' + 
+#              '''has_pause bool, ''' + 
+#              '''hemisphere char(5), ''' +
+             '''input_resistance_mohm double, ''' +                 # xcf ok
+#              '''latency double, ''' + 
+#              '''peak_t_long_square double, ''' + 
+#              '''peak_t_ramp double, ''' + 
+#              '''peak_t_short_square double, ''' + 
+#              '''peak_v_long_square double, ''' + 
+#              '''peak_v_ramp double, ''' + 
+#              '''peak_v_short_square double, ''' +
+#              '''reporter_status char(30), ''' + 
+             '''rheobase_current double, ''' +                      # xcf ok 
+             '''sag double, ''' +                                   # xcf ok
+#              '''seal_gohm double, ''' + 
+#              '''slow_trough_t_long_square double, ''' + 
+#              '''slow_trough_t_ramp double, ''' + 
+#              '''slow_trough_t_short_square double, ''' + 
+#              '''slow_trough_v_long_square double, ''' + 
+#              '''slow_trough_v_ramp double, ''' + 
+#              '''slow_trough_v_short_square double, ''' +
+#              '''structure_acronym char(20), ''' +
+#              '''structure_name char(50), ''' + 
+             '''tau double, ''' +                                    # xcf ok
+#              '''threshold_i_long_square double, ''' + 
+#              '''threshold_i_ramp double, ''' + 
+#              '''threshold_i_short_square double, ''' + 
+#              '''threshold_t_long_square double, ''' + 
+#              '''threshold_t_ramp double, ''' + 
+#              '''threshold_t_short_square double, ''' + 
+#              '''threshold_v_long_square double, ''' + 
+#              '''threshold_v_ramp double, ''' + 
+#              '''threshold_v_short_square double, ''' +
+#              '''transgenic_line char(30), ''' + 
+#              '''trough_t_long_square double, ''' + 
+#              '''trough_t_ramp double, ''' + 
+#              '''trough_t_short_square double, ''' + 
+#              '''trough_v_long_square double, ''' + 
+#              '''trough_v_ramp double, ''' + 
+#              '''trough_v_short_square double, ''' + 
+#              '''upstroke_downstroke_ratio_long_square double, ''' + 
+#              '''upstroke_downstroke_ratio_ramp double, ''' + 
+#              '''upstroke_downstroke_ratio_short_square double, ''' + 
+             '''v_baseline double, ''' +          # = vrest?         # xcf ok 
+             '''vm_for_sag double, ''' +                             # xcf ok
+             '''FOREIGN KEY(specID) REFERENCES specimens(id) ON DELETE CASCADE, ''' +
+             '''PRIMARY KEY (id)) ENGINE=InnoDB''')
 
     try:
         cursobj.execute(mycmd)
-        print "Table featureExtractions created"
+        print "Table specimenFXs created"
     except:
         if useTraceback:
             traceback.print_exc()
             
         pass
-        print "Table featureExtractions not created"
+        print "Table specimenFXs not created"
+
+    # Table experimentFXs
+    # Features specific to sweep/experiment level
+    mycmd = ('''CREATE TABLE experimentFXs (''' + 
+             '''id int(11) NOT NULL AUTO_INCREMENT, ''' +
+             '''expID int(11) NOT NULL, ''' +  
+             '''abiFXID int(11) NOT NULL, ''' +
+             '''adaptation double, ''' +                            # xcf ok
+#              '''avg_rate double, ''' +                              # xcf ok
+             '''hasSpikes bool, ''' +                               # xcf ok
+             '''numSpikes int(11), ''' +                            # xcf ok
+             '''first_isi double, ''' +                             # xcf ok
+             '''mean_isi double, ''' +                              # xcf ok
+#              '''median_isi double, ''' +                            # xcf ok
+             '''isi_cv double, ''' +                                # xcf ok
+             '''f_peak double, ''' +  
+             '''latency double, ''' +                               # xcf ok
+             '''threshold double, ''' +
+             '''FOREIGN KEY(expID) REFERENCES experiments(id) ON DELETE CASCADE, ''' +
+             '''PRIMARY KEY (id)) ENGINE=InnoDB''')
+#              '''hasBursts bool, ''' +                             # xcf    NO
+#              '''numBursts int(11), ''' +                          # xcf    NO 
+#              '''hasPauses bool, ''' +                             # xcf    NO
+#              '''numPauses int(11), ''' +                          # xcf    NO
+
+    try:
+        cursobj.execute(mycmd)
+        print "Table experimentFXs created"
+    except:
+        if useTraceback:
+            traceback.print_exc()
+            
+        pass
+        print "Table experimentFXs not created"
 
         
 # ====================================================================
@@ -154,8 +278,9 @@ if redoTables:
 # Choose specimens and experiments; these are just for testing
 # [2]
 print "\n[2]: Install the ABI Datasets into the database"; sys.stdout.flush()
-# specimens with models only 
 specimens = [484635029]
+# specimens = [312883165,484635029]
+# specimens with models only 
 # specimens = [
 #             484635029,
 #             469801569,
@@ -193,70 +318,154 @@ ctc = (CellTypesCache(manifest_file='C:/Users/David/Dropbox/Documents/'
      + 'SantamariaLab/Projects/Fractional/ABI-FLIF/FeatExtractDev/'
      + 'cell_types/cell_types_manifest.json'))
 
+# Get all cells with reconstructions
+cells = ctc.get_cells(require_reconstruction=True)
+
+# Populate the donors table
+for cell in cells:
+    queryStr = 'select * from donors where abiDonorID=' + str(cell['donor_id'])
+#     print queryStr
+    cursobj.execute(queryStr)
+    row = cursobj.fetchone()
+#     print type(row), row
+    if row is None:
+        insertStr = ('insert into donors (id, abiDonorID, sex, name) ' +
+                     ' values(%s, %s, %s, %s)')
+        insertData = (0, cell['donor_id'], cell['donor']['sex'], 
+                      cell['donor']['name'])
+#         print insertStr
+#         pprint(insertData)
+        cursobj.execute(insertStr, insertData)
+        donorid = cursobj.lastrowid
+#         print "donorid:", donorid
+        cnx.commit()
+
+
 # [4]
 print "\n[4]: Process each specimen in turn"; sys.stdout.flush()
 for specimen in specimens:
     # this saves the NWB file to '...FeatExtractDev/cell_types/specimen_XXXXXXXXX/ephys.nwb'
     print 'Processing:', specimen
-    data_set = ctc.get_ephys_data(specimen)
-    print data_set
-    
-    morphFeat = ctc.get_morphology_features()
-#     print "morphFeat:", morphFeat
-    for spec in morphFeat:
-        intspec = int(spec['specimen_id']) 
-        if intspec==specimen:
-            print "specimen:", intspec, "  soma_surface:", spec['soma_surface']
-            break
+    try:
+        specEphysData = ctc.get_ephys_data(specimen)
+    except:
+        print "No ephys data for specimen ", specimen
+        continue
+
+#     print type(data_set)
+#     pprint(data_set)
+#     sys.exit("Error message")
+
+#     dsspec = data_set['specimen_id']
+#     print "Specimen:", specimen, "dsspec:", dsspec
+#     sys.exit("Error message")
+
+    if False:
+        morphFeat = ctc.get_morphology_features()
+    #     print "morphFeat:", morphFeat
+        for spec in morphFeat:
+            intspec = int(spec['specimen_id']) 
+            if intspec==specimen:
+                print "specimen:", intspec, "  soma_surface:", spec['soma_surface']
+                pprint(spec)
+                break
+
+#     sys.exit("Not an error message")
+
 
     # START HERE ---- this cell is a dictionary that has most of the "other" non-sweep stuff
     # we need such as cell averages, rheobase info, transgenic line, hemisphere, 
-    # age, sex, graph order, dendrite type, area
-    ct = CellTypesApi()
-    cells = ct.list_cells(require_reconstruction=True)
-    print type(cells)
-#     print cells
+    # age, sex, graph order, dendrite type, area, has_burst,...
     for cell in cells:
-#         print type(cell)
-#         print "cell:", cell
-#         break
         datasets = cell['data_sets']
         for dataset in datasets:
-#             print type(dataset)
             dsspec = dataset['specimen_id']
-            print "dataset specimen_id:", dsspec 
             if dsspec == specimen:
-                print "cell:", cell
+                specCell = cell
                 break
-        
-    sys.exit("Error message")
+            
+    # handle specimen id not found 
     
     # Add the specimen to the database
-    insertStr = 'insert into specimens (id, abiSpecimenID) values (%s, %s)'
-    insertData = (0, specimen)
-    cursobj.execute(insertStr, insertData)
-    datasetid = cursobj.lastrowid
-    print "datasetid:", datasetid
+    donorID = specCell['donor_id']
+#     print "specCell donor:", donorID
+    queryStr = 'select id from donors where abiDonorID=' + str(donorID)
+#     print queryStr
+    temp = cursobj.execute(queryStr)
+    row = cursobj.fetchone()
+#     print row
+    donorID = row[0]
+#     print "fetched donor:", donorID
 
+    insertStr = ('insert into specimens (id, donorID, abiSpecimenID) ' + 
+                 'values (%s, %s, %s)')
+    insertData = (0, donorID, specimen)
+    cursobj.execute(insertStr, insertData)
+    specimenTableID = cursobj.lastrowid
+#     print "specimenTableID:", specimenTableID
+    cnx.commit()
+
+    # Add the specimen feature extraction data to the database
+    data_set = ctc.get_ephys_data(specCell['id'])
+    sweeps = ctc.get_ephys_sweeps(specimen)
+    sweep_numbers = defaultdict(list)
+    for sweep in sweeps:
+        sweep_numbers[sweep['stimulus_name']].append(sweep['sweep_number'])
+
+    cell_features = (extract_cell_features(data_set, sweep_numbers['Ramp'], 
+                sweep_numbers['Short Square'], sweep_numbers['Long Square']))
+#     print "cell_features", cell_features
+
+    hasSpikes = cell_features['long_squares']['spiking_sweeps'] != []
+    input_resistance = cell_features['long_squares']['input_resistance']
+    rheobase_current = cell_features['long_squares']['rheobase_i']
+    sag = cell_features['long_squares']['sag']
+    tau = cell_features['long_squares']['tau']
+    v_baseline = cell_features['long_squares']['v_baseline']
+    vm_for_sag = cell_features['long_squares']['vm_for_sag']
+    
+    insertStr = ('insert into specimenFXs (id, specID, hasSpikes, ' + 
+                 'input_resistance_mohm, rheobase_current, sag, ' + 
+                 'tau, v_baseline, vm_for_sag) values (' + 
+                 '%s, %s, %s, %s, %s, %s, %s, %s, %s)')
+    insertData = (int(0), specimenTableID, hasSpikes, 
+                 input_resistance, rheobase_current, sag,  
+                 tau, v_baseline, vm_for_sag)
+    cursobj.execute(insertStr, insertData)
+    specFXTableID = cursobj.lastrowid
+    cnx.commit()
+
+#     sys.exit("Not an error message")
+
+    # Add the sweep/experiment to the database
     sweeps = ctc.get_ephys_sweeps(specimen)
     for sweep in sweeps:
         sweepNum = sweep['sweep_number']
-        print "\nsweep_number:", sweepNum, "   stimulus:", sweep['stimulus_name'], "   num_spikes", sweep['num_spikes']
+        print ("sweep_number:", sweepNum, 
+               "   stimulus:", sweep['stimulus_name'], 
+               "   num_spikes", sweep['num_spikes'])
         print sweep
         if sweep['stimulus_name'] not in ['Long Square', 'Short Square']:
             continue
 
-        sweep_data = data_set.get_sweep(sweepNum)
+        sweep_data = specEphysData.get_sweep(sweepNum)
         print sweep_data
         print "Index Range: ", sweep_data["index_range"] 
-        sweep_metadata = data_set.get_sweep_metadata(sweepNum)
+        sweep_metadata = specEphysData.get_sweep_metadata(sweepNum)
         print sweep_metadata
         
-        # Add the sweep/experiment to the database
-        print type(datasetid), type(sweepNum), type(None), type(sweep_metadata['aibs_stimulus_name']), type(sweep_metadata['aibs_stimulus_amplitude_pa'])
-        insertStr = 'insert into experiments (id, specimenIDX, abiExperimentID, fxID, stimulusType, stimCurrent) values (%s, %s, %s, %s, %s, %s)'
-        insertData = (int(0), datasetid, sweepNum, None, sweep_metadata['aibs_stimulus_name'], 
-                  float(sweep_metadata['aibs_stimulus_amplitude_pa']))
+        # Need to check if this sweep is actually an experiment
+        # (not implemented yet)
+        
+        print (type(specimenTableID), type(sweepNum), type(None), 
+               type(sweep_metadata['aibs_stimulus_name']), 
+               type(sweep_metadata['aibs_stimulus_amplitude_pa']))
+        insertStr = ('insert into experiments (id, specimenIDX, ' + 
+                     'abiExperimentID, expFXID, stimulusType, stimCurrent) ' + 
+                     'values (%s, %s, %s, %s, %s, %s)')
+        insertData = (int(0), specimenTableID, sweepNum, None, 
+                      sweep_metadata['aibs_stimulus_name'], 
+                      float(sweep_metadata['aibs_stimulus_amplitude_pa']))
         cursobj.execute(insertStr, insertData)
         experimentIDX = cursobj.lastrowid
         print "experimentIDX:", experimentIDX
@@ -272,6 +481,8 @@ for specimen in specimens:
 #     sweep_metadata = data_set.get_sweep_metadata(spex.expNum)
 #     print sweep_metadata
 #     
+        
+    # Create the experiment feature extraction data    
 #     # index_range[0] is the "experiment" start index. 0 is the "sweep" start index
         index_range = sweep_data["index_range"]
 #     # i = sweep_data["stimulus"][index_range[0]:index_range[1]+1] # in A
@@ -385,6 +596,11 @@ for specimen in specimens:
             averageSpikePeak = feature_data['f_peak']
         else:
             averageSpikePeak = None  
+
+        if 'id' in sweep:
+            abiFXID = sweep['id']
+        else:
+            abiFXID = None
      
         print 'hasSpikes:',  hasSpikes 
         print 'numSpikes:',  numSpikes 
@@ -397,20 +613,18 @@ for specimen in specimens:
         print 'averageSpikePeak', averageSpikePeak 
          
         # Add the feature extraction to the database
-        insertStr = ('insert into featureExtractions (' + 
-                        'fxID, expID, hasSpikes, numSpikes, latency, ' + 
-                        'ISIMean, ISIFirst, ISICV, ' + 
-#                         'hasBursts, numBursts, hasPauses, numPauses, ' + 
-                        'adaptation, threshold) ' + 
-                        'values(%s, %s, %s, %s, %s, %s, %s, ' + 
-#                         '%s, %s, %s, %s, ' + 
-                        '%s, %s, %s)')
-        insertData = (0, experimentIDX, hasSpikes, int(numSpikes), 
-                      latency, ISIMean, ISIFirst, ISICV, 
-#                   hasBursts, numBursts, hasPauses, numPauses, 
-                      adaptation, threshold) 
+        insertStr = ('insert into experimentFXs (' + 
+                     'id, expID, abiFXID, adaptation, ' + 
+                     'hasSpikes, numSpikes, ' + 
+                     'first_isi, mean_isi, isi_cv, f_peak, latency, threshold) ' + 
+                     'values(%s, %s, %s, %s, ' + 
+                     '%s, %s, ' + 
+                     '%s, %s, %s, %s, %s, %s)')
+        insertData = (0, experimentIDX, abiFXID, adaptation, 
+                      hasSpikes, int(numSpikes), 
+                      ISIFirst, ISIMean, ISICV, averageSpikePeak, 
+                      latency, threshold) 
         print 'insertStr:', insertStr
-        print type(latency), type(ISIMean), type(ISIFirst), type(ISICV)
         print "Inserting into featureExtractions table now"
         cursobj.execute(insertStr, insertData)
         fxID = cursobj.lastrowid
@@ -418,10 +632,12 @@ for specimen in specimens:
         print fxID, experimentIDX
          
         # Add the fx to the experiment
-        updateStr = 'update experiments set fxID=%s where id=%s'
+        updateStr = 'update experiments set expFXID=%s where id=%s'
         updateData = (fxID, experimentIDX)
         cursobj.execute(updateStr, updateData)
         cnx.commit()
+        
+
 
 cnx.close()
 print "Script complete."
