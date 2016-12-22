@@ -1,0 +1,73 @@
+left side from
+https://alleninstitute.github.io/AllenSDK/_static/examples/nb/cell_types.html#Computing-Electrophysiology-Features
+
+right side from CellTypesApi -> get_ephys_sweeps -> extract_cell_features
+
+import pprint
+pp = pprint.PrettyPrinter(indent=2)
+# download all electrophysiology features for all cells
+ephys_features = ctc.get_ephys_features()
+print("Ephys. features available for %d cells" % len(ephys_features))
+
+# filter down to a specific cell
+specimen_id = 464212183
+cell_ephys_features = [f for f in ephys_features if f['specimen_id'] == specimen_id]
+
+pp.pprint(cell_ephys_features)
+Ephys. features available for 844 cells                 _______ right side from CellTypesApi -> get_ephys_sweeps -> extract_cell_features _______
+[ { u'adaptation': 0.0106601916957407,                          -> long_squares hero_sweep adaptation
+    u'avg_isi': 50.9122222222222,								-> long_squares hero_sweep mean_isi (but there is a 10^3 difference)
+    u'electrode_0_pa': -73.0906168922019,						??
+    u'f_i_curve_slope': 0.385990848292855,						-> long_squares fi_fit_slope
+    u'fast_trough_t_long_square': 1.243575,						-> long_squares rheobase_sweep (first spike) fast_trough_t
+    u'fast_trough_t_ramp': 3.872615,							-> ramps mean_spike_0 fast_trough_t
+    u'fast_trough_t_short_square': 1.02579833333333,			-> short_squares mean_spike_0 fast_trough_t
+    u'fast_trough_v_long_square': -58.4062538146973,			-> long_squares rheobase_sweep (first spike) fast_trough_v
+    u'fast_trough_v_ramp': -56.3645846048991,					-> ramps mean_spike_0 fast_trough_v
+    u'fast_trough_v_short_square': -61.0260435740153,			-> short_squares mean_spike_0 fast_trough_v
+    u'has_burst': False,										-> wherefrom?
+    u'has_delay': False,										-> wherefrom?
+    u'has_pause': False,										-> wherefrom?
+    u'id': 464366365,											-> wherefrom?
+    u'input_resistance_mohm': 129.36264,						-> !!NOT!! the input_resistance from this file long_squares; wherefrom?  @@@@@
+    u'latency': 0.03078,										-> long_squares hero_sweep latency
+    u'peak_t_long_square': 1.24139,								-> long_squares rheobase_sweep (first spike) peak_t
+    u'peak_t_ramp': 3.87071,									-> ramps mean_spike_0 peak_t
+    u'peak_t_short_square': 1.02364916666667,					-> short_squares mean_spike_0 peak_t
+    u'peak_v_long_square': 10.71875,							-> long_squares rheobase_sweep (first spike) peak_v
+    u'peak_v_ramp': 26.4895833333333,							-> ramps mean_spike_0 peak_v
+    u'peak_v_short_square': 16.0000006357829,					-> short_squares mean_spike_0 peak_v
+    u'rheobase_sweep_id': 464306919,							-> ???
+    u'rheobase_sweep_number': 45,								-> long_squares rheobase_sweep id
+    u'ri': 223.437577486038,									-> long_squares input_resistance                                         @@@@@
+    u'sag': 0.196279138326645,									-> long_squares subthreshold_sweeps (first sweep 19 - no averaging)
+    u'seal_gohm': 1.80903808,									???
+    u'slow_trough_t_long_square': nan,							-> !!NOT!! from hero_sweep.   IS FROM -> long_squares rheobase_sweep (first spike) slow_trough_t
+    u'slow_trough_t_ramp': nan,									-> ramps mean_spike_0 slow_trough_t
+    u'slow_trough_t_short_square': 1.273295,					-> short_squares mean_spike_0 slow_trough_t
+    u'slow_trough_v_long_square': nan,							-> !!NOT!! from hero_sweep.   IS FROM -> long_squares rheobase_sweep (first spike) slow_trough_v
+    u'slow_trough_v_ramp': nan,									-> ramps mean_spike_0 slow_trough_v
+    u'slow_trough_v_short_square': -65.7291679382324,			-> short_squares mean_spike_0 slow_trough_v
+    u'specimen_id': 464212183,									-> ok
+    u'tau': 19.0825501890709,									-> average of the long_squares subthreshold_membrane_property_sweeps tau
+    u'threshold_i_long_square': 70.0,							-> long_squares rheobase_sweep rheobase_i  SO LONG SQUARES RHEOBASE CURRENT IS THE THRESHOLD CURRENT
+    u'threshold_i_ramp': 71.25,									-> ramps mean_spike_0 threshold_i 
+    u'threshold_i_short_square': 0.0,							-> short_squares mean_spike_0 threshold_i
+    u'threshold_t_long_square': 1.240845,						-> long_squares rheobase_sweep threshold_t
+    u'threshold_t_ramp': 3.87010166666667,						-> ramps mean_spike_0 threshold_t
+    u'threshold_t_short_square': 1.02313833333333,				-> short_squares mean_spike_0 threshold_t
+    u'threshold_v_long_square': -40.53125,						-> long_squares rheobase_sweep threshold_v
+    u'threshold_v_ramp': -39.3958346048991,						-> ramps mean_spike_0 threshold_v
+    u'threshold_v_short_square': -40.3802083333333,				-> short_squares mean_spike_0 threshold_v
+    u'thumbnail_sweep_id': 464306887,							???
+    u'trough_t_long_square': 1.243855,							-> long_squares rheobase_sweep (first spike) trough_t
+    u'trough_t_ramp': 3.87297,									-> ramps mean_spike_0 trough_t
+    u'trough_t_short_square': 1.273295,							-> short_squares mean_spike_0 INCORRECT VALUE? (this is the same as the slow_trough_t value)
+    u'trough_v_long_square': -58.59375,							-> long_squares rheobase_sweep (first spike) trough_v 
+    u'trough_v_ramp': -56.6354192097982,						-> ramps mean_spike_0 trough_v	
+    u'trough_v_short_square': -65.7291679382324,				-> short_squares mean_spike_0 INCORRECT VALUE? (this is the same as the slow_trough_v value) 
+    u'upstroke_downstroke_ratio_long_square': 1.91568368870624, -> long_squares rheobase_sweep (first spike) upstroke_downstroke_ratio
+    u'upstroke_downstroke_ratio_ramp': 2.04554102487428,		-> ramps mean_spike_0 upstroke_downstroke_ratio
+    u'upstroke_downstroke_ratio_short_square': 1.82117838780585,-> short_squares mean_spike_0 upstroke_downstroke_ratio
+    u'vm_for_sag': -90.46875,									-> long_squares vm_for_sag
+    u'vrest': -65.7717208862305}]								-> long_squares v_baseline

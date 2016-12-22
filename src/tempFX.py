@@ -6,8 +6,10 @@ from pprint import pprint
 
 # pick a cell to analyze
 print "1"
-specimen_id = 484635029
-nwb_file = '../../ABIFeatureExtraction/cell_types/specimen_484635029.nwb'
+# specimen_id = 484635029
+# nwb_file = '../../ABIFeatureExtraction/cell_types/specimen_484635029.nwb'
+specimen_id = 464212183
+nwb_file = '../../FeatExtractDev/cell_types/specimen_464212183/ephys.nwb'
 
 # download the ephys data and sweep metadata
 print "2"
@@ -38,7 +40,7 @@ cell_features = extract_cell_features(NwbDataSet(nwb_file),
                                     sweep_numbers['Ramp'],
                                     sweep_numbers['Short Square'],
                                     sweep_numbers['Long Square'])
-pprint(cell_features['long_squares'])
+pprint(cell_features)
 print "8"
 print cell_features.keys()
 print "9"

@@ -14,12 +14,14 @@ import sys
 from allensdk.ephys.extract_cell_features import extract_cell_features
 from allensdk.core.cell_types_cache import CellTypesCache
 from allensdk.ephys.feature_extractor import EphysFeatureExtractor
+from allensdk.ephys.ephys_extractor import EphysSweepFeatureExtractor
 from collections import defaultdict
 
 import mysql.connector
 import traceback
 import numpy as np
 from numpyconversion import NumpyMySQLConverter
+import math
 
 from pprint import pprint
 
@@ -146,6 +148,7 @@ if redoTables:
              '''specimenIDX int(11) NOT NULL, ''' +
              '''abiExperimentID int(11), ''' +
              '''expFXID int(11), ''' +          # probably not necessary
+             '''sampling_rate int(11), ''' +
              '''stimulusType char(100), ''' + 
              '''stimCurrent double, ''' +
              '''FOREIGN KEY(specimenIDX) REFERENCES specimens(id) ON DELETE CASCADE, ''' + 
@@ -162,68 +165,78 @@ if redoTables:
 
 
     # Table specimenFXs
+    # This table designed primarily from ephys_features output
+    # See https://alleninstitute.github.io/AllenSDK/_static/examples/nb/cell_types.html#Computing-Electrophysiology-Features
+    # See also extractCellFeaturesAnalysis.txt
+    # How is hero sweep chosen?
     # Features specific to cell level (typically average, or any)
     mycmd = ('''CREATE TABLE specimenFXs (''' + 
              '''id int(11) NOT NULL AUTO_INCREMENT, ''' + 
              '''specID int(11) NOT NULL, ''' + 
 #              '''abiFXID int(11) NOT NULL, ''' + 
-             '''hasSpikes bool, ''' +
-#              '''adaptation double, ''' + 
-#              '''avg_isi double, ''' + 
-#              '''dendrite_type bool, ''' + 
-#              '''electrode_0_pa double, ''' + 
-#              '''f_i_curve_slope double, ''' + 
-#              '''fast_trough_t_long_square double, ''' + 
-#              '''fast_trough_t_ramp double, ''' + 
-#              '''fast_trough_t_short_square double, ''' + 
-#              '''fast_trough_v_long_square double, ''' + 
-#              '''fast_trough_v_ramp double, ''' + 
-#              '''fast_trough_v_short_square double, ''' + 
-#              '''has_burst bool, ''' + 
-#              '''has_delay bool, ''' + 
-#              '''has_pause bool, ''' + 
-#              '''hemisphere char(5), ''' +
-             '''input_resistance_mohm double, ''' +                 # xcf ok
-#              '''latency double, ''' + 
-#              '''peak_t_long_square double, ''' + 
-#              '''peak_t_ramp double, ''' + 
-#              '''peak_t_short_square double, ''' + 
-#              '''peak_v_long_square double, ''' + 
-#              '''peak_v_ramp double, ''' + 
-#              '''peak_v_short_square double, ''' +
-#              '''reporter_status char(30), ''' + 
+             '''hasSpikes bool, ''' +                       # xcf-based
+             '''hero_sweep_adaptation double, ''' +         # ephys_features hero sweep 
+             '''hero_sweep_first_isi double, ''' +          # ephys_features hero sweep
+             '''hero_sweep_mean_isi double, ''' +           # ephys_features hero sweep
+             '''hero_sweep_median_isi double, ''' +         # ephys_features hero sweep
+             '''hero_sweep_isi_cv double, ''' +             # ephys_features hero sweep
+             '''hero_sweep_latency double, ''' +            # ephys_features hero sweep
+             '''hero_sweep_stim_amp double, ''' +           # ephys_features hero sweep
+             '''hero_sweep_v_baseline double, ''' +         # ephys_features hero sweep
+#              '''dendrite_type bool, ''' +                 #   need to find this
+             '''electrode_0_pa double, ''' +                # ephys_features 
+             '''f_i_curve_slope double, ''' +               # ephys_features
+             '''fast_trough_t_long_square double, ''' +     # ephys_features 
+             '''fast_trough_t_ramp double, ''' +            # ephys_features
+             '''fast_trough_t_short_square double, ''' +    # ephys_features
+             '''fast_trough_v_long_square double, ''' +     # ephys_features
+             '''fast_trough_v_ramp double, ''' +            # ephys_features
+             '''fast_trough_v_short_square double, ''' +    # ephys_features
+             '''has_burst bool, ''' +                       # ephys_features 
+             '''has_delay bool, ''' +                       # ephys_features
+             '''has_pause bool, ''' +                       # ephys_features
+#              '''hemisphere char(5), ''' +                 #   need to find this
+#              '''input_resistance_mohm double, ''' +                 # xcf ok but what is it?
+             '''peak_t_long_square double, ''' +            # ephys_features
+             '''peak_t_ramp double, ''' +                   # ephys_features
+             '''peak_t_short_square double, ''' +           # ephys_features
+             '''peak_v_long_square double, ''' +            # ephys_features
+             '''peak_v_ramp double, ''' +                   # ephys_features
+             '''peak_v_short_square double, ''' +           # ephys_features
+#              '''reporter_status char(30), ''' +                 # where from?
              '''rheobase_current double, ''' +                      # xcf ok 
+             '''ri double, ''' +                            # ephys_features input_resistance
              '''sag double, ''' +                                   # xcf ok
-#              '''seal_gohm double, ''' + 
-#              '''slow_trough_t_long_square double, ''' + 
-#              '''slow_trough_t_ramp double, ''' + 
-#              '''slow_trough_t_short_square double, ''' + 
-#              '''slow_trough_v_long_square double, ''' + 
-#              '''slow_trough_v_ramp double, ''' + 
-#              '''slow_trough_v_short_square double, ''' +
-#              '''structure_acronym char(20), ''' +
-#              '''structure_name char(50), ''' + 
-             '''tau double, ''' +                                    # xcf ok
-#              '''threshold_i_long_square double, ''' + 
-#              '''threshold_i_ramp double, ''' + 
-#              '''threshold_i_short_square double, ''' + 
-#              '''threshold_t_long_square double, ''' + 
-#              '''threshold_t_ramp double, ''' + 
-#              '''threshold_t_short_square double, ''' + 
-#              '''threshold_v_long_square double, ''' + 
-#              '''threshold_v_ramp double, ''' + 
-#              '''threshold_v_short_square double, ''' +
-#              '''transgenic_line char(30), ''' + 
-#              '''trough_t_long_square double, ''' + 
-#              '''trough_t_ramp double, ''' + 
-#              '''trough_t_short_square double, ''' + 
-#              '''trough_v_long_square double, ''' + 
-#              '''trough_v_ramp double, ''' + 
-#              '''trough_v_short_square double, ''' + 
-#              '''upstroke_downstroke_ratio_long_square double, ''' + 
-#              '''upstroke_downstroke_ratio_ramp double, ''' + 
-#              '''upstroke_downstroke_ratio_short_square double, ''' + 
-             '''v_baseline double, ''' +          # = vrest?         # xcf ok 
+             '''seal_gohm double, ''' +                     # ephys_features
+             '''slow_trough_t_long_square double, ''' +     # ephys_features
+             '''slow_trough_t_ramp double, ''' +            # ephys_features
+             '''slow_trough_t_short_square double, ''' +    # ephys_features
+             '''slow_trough_v_long_square double, ''' +     # ephys_features
+             '''slow_trough_v_ramp double, ''' +            # ephys_features
+             '''slow_trough_v_short_square double, ''' +    # ephys_features
+#              '''structure_acronym char(20), ''' +        #   need to find this
+#              '''structure_name char(50), ''' +         #   need to find this
+             '''tau double, ''' +                                    # xcf ok or ephys_features??
+             '''threshold_i_long_square double, ''' +       # ephys_features
+             '''threshold_i_ramp double, ''' +              # ephys_features
+             '''threshold_i_short_square double, ''' +      # ephys_features
+             '''threshold_t_long_square double, ''' +       # ephys_features
+             '''threshold_t_ramp double, ''' +              # ephys_features
+             '''threshold_t_short_square double, ''' +      # ephys_features
+             '''threshold_v_long_square double, ''' +       # ephys_features
+             '''threshold_v_ramp double, ''' +              # ephys_features
+             '''threshold_v_short_square double, ''' +      # ephys_features
+#              '''transgenic_line char(30), ''' +         #   need to find this
+             '''trough_t_long_square double, ''' +          # ephys_features
+             '''trough_t_ramp double, ''' +                 # ephys_features
+             '''trough_t_short_square double, ''' +         # ephys_features
+             '''trough_v_long_square double, ''' +          # ephys_features
+             '''trough_v_ramp double, ''' +                 # ephys_features
+             '''trough_v_short_square double, ''' +         # ephys_features
+             '''upstroke_downstroke_ratio_long_square double, ''' +  # ephys_features
+             '''upstroke_downstroke_ratio_ramp double, ''' +         # ephys_features
+             '''upstroke_downstroke_ratio_short_square double, ''' + # ephys_features
+             '''v_rest double, ''' +          # = vrest         # xcf ok or ephys_features?? 
              '''vm_for_sag double, ''' +                             # xcf ok
              '''FOREIGN KEY(specID) REFERENCES specimens(id) ON DELETE CASCADE, ''' +
              '''PRIMARY KEY (id)) ENGINE=InnoDB''')
@@ -278,7 +291,11 @@ if redoTables:
 # Choose specimens and experiments; these are just for testing
 # [2]
 print "\n[2]: Install the ABI Datasets into the database"; sys.stdout.flush()
-specimens = [484635029]
+# specimens = [484635029]
+specimens = [
+            484635029,
+            469801569,
+            469753383]
 # specimens = [312883165,484635029]
 # specimens with models only 
 # specimens = [
@@ -321,7 +338,9 @@ ctc = (CellTypesCache(manifest_file='C:/Users/David/Dropbox/Documents/'
 # Get all cells with reconstructions
 cells = ctc.get_cells(require_reconstruction=True)
 
+####### ALL DONORS #######
 # Populate the donors table
+print "\n[4]: Populating donors table"
 for cell in cells:
     queryStr = 'select * from donors where abiDonorID=' + str(cell['donor_id'])
 #     print queryStr
@@ -341,8 +360,7 @@ for cell in cells:
         cnx.commit()
 
 
-# [4]
-print "\n[4]: Process each specimen in turn"; sys.stdout.flush()
+print "\n[5]: Process each specimen in turn"; sys.stdout.flush()
 for specimen in specimens:
     # this saves the NWB file to '...FeatExtractDev/cell_types/specimen_XXXXXXXXX/ephys.nwb'
     print 'Processing:', specimen
@@ -350,6 +368,12 @@ for specimen in specimens:
         specEphysData = ctc.get_ephys_data(specimen)
     except:
         print "No ephys data for specimen ", specimen
+        continue
+
+    try:
+        ephys_features = ctc.get_ephys_features()
+    except:
+        print "No ephys features for specimen ", specimen
         continue
 
 #     print type(data_set)
@@ -386,6 +410,7 @@ for specimen in specimens:
             
     # handle specimen id not found 
     
+    ####### SPECIMEN #######
     # Add the specimen to the database
     donorID = specCell['donor_id']
 #     print "specCell donor:", donorID
@@ -405,7 +430,14 @@ for specimen in specimens:
 #     print "specimenTableID:", specimenTableID
     cnx.commit()
 
+
+#v--------------------
     # Add the specimen feature extraction data to the database
+    # Source 1: ephys_features
+    cell_ephys_features_list = [f for f in ephys_features if f['specimen_id'] == specimen]
+    cell_ephys_features = cell_ephys_features_list[0]
+     
+    # Source 2: ephys_data
     data_set = ctc.get_ephys_data(specCell['id'])
     sweeps = ctc.get_ephys_sweeps(specimen)
     sweep_numbers = defaultdict(list)
@@ -414,61 +446,208 @@ for specimen in specimens:
 
     cell_features = (extract_cell_features(data_set, sweep_numbers['Ramp'], 
                 sweep_numbers['Short Square'], sweep_numbers['Long Square']))
-#     print "cell_features", cell_features
-
-    hasSpikes = cell_features['long_squares']['spiking_sweeps'] != []
-    input_resistance = cell_features['long_squares']['input_resistance']
-    rheobase_current = cell_features['long_squares']['rheobase_i']
-    sag = cell_features['long_squares']['sag']
-    tau = cell_features['long_squares']['tau']
-    v_baseline = cell_features['long_squares']['v_baseline']
-    vm_for_sag = cell_features['long_squares']['vm_for_sag']
+    #     print "cell_features", cell_features
+    sFXs = {}
+    sFXs['hasSpikes']             = cell_features['long_squares']['spiking_sweeps'] != []
+    sFXs['hero_sweep_adaptation'] = cell_features['long_squares']['hero_sweep']['adapt']
+    sFXs['hero_sweep_first_isi']  = cell_features['long_squares']['hero_sweep']['first_isi']
+    sFXs['hero_sweep_mean_isi']   = cell_features['long_squares']['hero_sweep']['mean_isi']
+    sFXs['hero_sweep_median_isi'] = cell_features['long_squares']['hero_sweep']['median_isi']
+    sFXs['hero_sweep_isi_cv']     = cell_features['long_squares']['hero_sweep']['isi_cv']
+    sFXs['hero_sweep_latency']    = cell_features['long_squares']['hero_sweep']['latency']
+    sFXs['hero_sweep_stim_amp']   = cell_features['long_squares']['hero_sweep']['stim_amp']
+    sFXs['hero_sweep_v_baseline'] = cell_features['long_squares']['hero_sweep']['v_baseline']
+#     dendrite_type
+    sFXs['electrode_0_pa']        = cell_ephys_features['electrode_0_pa']
+    sFXs['f_i_curve_slope']       = cell_ephys_features['f_i_curve_slope']
+    sFXs['fast_trough_t_long_square']  = cell_ephys_features['fast_trough_t_long_square']     
+    sFXs['fast_trough_t_ramp']    = cell_ephys_features['fast_trough_t_ramp']    
+    sFXs['fast_trough_t_short_square']  = cell_ephys_features['fast_trough_t_short_square']  
+    sFXs['fast_trough_v_long_square']  = cell_ephys_features['fast_trough_v_long_square']
+    sFXs['fast_trough_v_ramp']    = cell_ephys_features['fast_trough_v_ramp']    
+    sFXs['fast_trough_v_short_square']  = cell_ephys_features['fast_trough_v_short_square']
+    sFXs['has_burst']             = cell_ephys_features['has_burst']    
+    sFXs['has_delay']             = cell_ephys_features['has_delay']    
+    sFXs['has_pause']             = cell_ephys_features['has_pause']    
+#     hemisphere 
+#     input_resistance_mohm 
+    sFXs['peak_t_long_square']    = cell_ephys_features['peak_t_long_square']
+    sFXs['peak_t_ramp']           = cell_ephys_features['peak_t_ramp']    
+    sFXs['peak_t_short_square']   = cell_ephys_features['peak_t_short_square']
+    sFXs['peak_v_long_square']    = cell_ephys_features['peak_v_long_square'] 
+    sFXs['peak_v_ramp']           = cell_ephys_features['peak_v_ramp']    
+    sFXs['peak_v_short_square']   = cell_ephys_features['peak_v_short_square']
+#     reporter_status
+    sFXs['rheobase_current']      = cell_features['long_squares']['rheobase_i'] 
+    sFXs['ri']                    = cell_ephys_features['ri']
+    sFXs['sag']                   = cell_ephys_features['sag']
+    sFXs['seal_gohm']             = cell_ephys_features['seal_gohm']
+    sFXs['slow_trough_t_long_square'] = cell_ephys_features['slow_trough_t_long_square']
+    sFXs['slow_trough_t_ramp']    = cell_ephys_features['slow_trough_t_ramp']           
+    sFXs['slow_trough_t_short_square'] = cell_ephys_features['slow_trough_t_short_square']
+    sFXs['slow_trough_v_long_square'] = cell_ephys_features['slow_trough_v_long_square']  
+    sFXs['slow_trough_v_ramp']    = cell_ephys_features['slow_trough_v_ramp']                
+    sFXs['slow_trough_v_short_square'] = cell_ephys_features['slow_trough_v_short_square']
+#     structure_acronym 
+#     structure_name 
+    sFXs['tau']                   = cell_ephys_features['tau']
+    sFXs['threshold_i_long_square'] = cell_ephys_features['threshold_i_long_square']
+    sFXs['threshold_i_ramp']      = cell_ephys_features['threshold_i_ramp']              
+    sFXs['threshold_i_short_square'] = cell_ephys_features['threshold_i_short_square']
+    sFXs['threshold_t_long_square'] = cell_ephys_features['threshold_t_long_square']  
+    sFXs['threshold_t_ramp']      = cell_ephys_features['threshold_t_ramp']              
+    sFXs['threshold_t_short_square'] = cell_ephys_features['threshold_t_short_square']
+    sFXs['threshold_v_long_square'] = cell_ephys_features['threshold_v_long_square']  
+    sFXs['threshold_v_ramp']      = cell_ephys_features['threshold_v_ramp']              
+    sFXs['threshold_v_short_square'] = cell_ephys_features['threshold_v_short_square']
+#     transgenic_line
+    sFXs['trough_t_long_square']  = cell_ephys_features['trough_t_long_square']        
+    sFXs['trough_t_ramp']         = cell_ephys_features['trough_t_ramp']                 
+    sFXs['trough_t_short_square'] = cell_ephys_features['trough_t_short_square'] 
+    sFXs['trough_v_long_square']  = cell_ephys_features['trough_v_long_square']   
+    sFXs['trough_v_ramp']         = cell_ephys_features['trough_v_ramp']                 
+    sFXs['trough_v_short_square'] = cell_ephys_features['trough_v_short_square'] 
+    sFXs['upstroke_downstroke_ratio_long_square'] = cell_ephys_features['upstroke_downstroke_ratio_long_square']  
+    sFXs['upstroke_downstroke_ratio_ramp'] = cell_ephys_features['upstroke_downstroke_ratio_ramp']        
+    sFXs['upstroke_downstroke_ratio_short_square'] = cell_ephys_features['upstroke_downstroke_ratio_short_square'] 
+    sFXs['v_rest']                = cell_ephys_features['vrest']
+    sFXs['vm_for_sag']            = cell_ephys_features['vm_for_sag']
     
-    insertStr = ('insert into specimenFXs (id, specID, hasSpikes, ' + 
-                 'input_resistance_mohm, rheobase_current, sag, ' + 
-                 'tau, v_baseline, vm_for_sag) values (' + 
-                 '%s, %s, %s, %s, %s, %s, %s, %s, %s)')
-    insertData = (int(0), specimenTableID, hasSpikes, 
-                 input_resistance, rheobase_current, sag,  
-                 tau, v_baseline, vm_for_sag)
+    for k,v in sFXs.items():
+        if math.isnan(v):
+            sFXs[k] = None
+            
+    keys = sFXs.keys()
+    numKeys = len(keys)
+    print "Number of keys:", numKeys
+    
+#^--------------------
+
+#     insertStr = ('insert into specimenFXs (id, specID, hasSpikes, ' +
+#                  'hero_sweep_adaptation, hero_sweep_first_isi, ' + 
+#                  'hero_sweep_mean_isi, hero_sweep_median_isi, ' + 
+#                  'hero_sweep_isi_cv, hero_sweep_latency, ' + 
+#                  'hero_sweep_stim_amp, hero_sweep_v_baseline, ' +
+#                  'electrode_0_pa, f_i_curve_slope, ' + 
+#                  'fast_trough_t_long_square, fast_trough_t_ramp, ' +
+#                  'fast_trough_t_short_square, fast_trough_v_long_square, ' + 
+#                  'fast_trough_v_ramp, fast_trough_v_short_square, ' + 
+#                  'has_burst, has_delay, has_pause, ' + 
+#                  'peak_t_long_square, peak_t_ramp, ' +
+#                  'peak_t_short_square, peak_v_long_square, peak_v_ramp,' +
+#                  'peak_v_short_square, rheobase_current, ri, sag, ' +
+#                  'seal_gohm, slow_trough_t_long_square, slow_trough_t_ramp, ' + 
+#                  'slow_trough_t_short_square, slow_trough_v_long_square, ' + 
+#                  'slow_trough_v_ramp, slow_trough_v_short_square, ' + 
+#                  'tau, threshold_i_long_square, ' 
+#                  'threshold_i_ramp, ' +
+#                  'threshold_i_short_square, threshold_t_long_square, ' +
+#                  'threshold_t_ramp, threshold_t_short_square, ' +
+#                  'threshold_v_long_square, threshold_v_ramp, '  +
+#                  'threshold_v_short_square, trough_t_long_square, trough_t_ramp, ' +
+#                  'trough_t_short_square, trough_v_long_square, trough_v_ramp, ' +  
+#                  'trough_v_short_square, upstroke_downstroke_ratio_long_square, ' + 
+#                  'upstroke_downstroke_ratio_ramp, upstroke_downstroke_ratio_short_square, ' +
+#                  'v_rest, vm_for_sag' + 
+#                  ') values (%s, %s, ' + 
+#                  '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, ' + 
+#                  '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, ' + 
+#                  '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, ' + 
+#                  '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, ' + 
+#                  '%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, ' + 
+#                  '%s, %s, %s, %s, %s, %s, %s' + 
+#                  ')')
+#     print insertStr
+    paramStrList = []
+    insertData = [int(0), specimenTableID]
+    for k,v in sFXs.items():
+        paramStrList.append(k)
+        insertData.append(v)
+        
+    s = ", "
+    paramStr = s.join(paramStrList)
+    
+    insertStr = ('insert into specimenFXs (id, specID, ' + paramStr + 
+                 ') values (' + '%s, '*(numKeys-1+2) + '%s)')
+    print insertStr
+    print insertData
+    
+#     insertStr.append(') values (')
+    
+    
+    
+#     insertData = (int(0), specimenTableID, hasSpikes, 
+#                   hero_sweep_adaptation, hero_sweep_first_isi, 
+#                   hero_sweep_mean_isi, hero_sweep_median_isi,
+#                   hero_sweep_isi_cv, hero_sweep_latency, 
+#                   hero_sweep_stim_amp, hero_sweep_v_baseline,
+#                   electrode_0_pa, f_i_curve_slope,
+#                   fast_trough_t_long_square, fast_trough_t_ramp,
+#                   fast_trough_t_short_square, fast_trough_v_long_square,
+#                   fast_trough_v_ramp, fast_trough_v_short_square,
+#                   has_burst, has_delay, has_pause,
+#                   peak_t_long_square, peak_t_ramp,
+#                   peak_t_short_square, peak_v_long_square, peak_v_ramp,
+#                   peak_v_short_square, rheobase_current, ri, sag,
+#                   seal_gohm, slow_trough_t_long_square, slow_trough_t_ramp,
+#                   slow_trough_t_short_square, slow_trough_v_long_square,
+#                   slow_trough_v_ramp, slow_trough_v_short_square,
+#                   tau, threshold_i_long_square,
+#                   threshold_i_ramp,
+#                   threshold_i_short_square, threshold_t_long_square,
+#                   threshold_t_ramp, threshold_t_short_square,
+#                   threshold_v_long_square, threshold_v_ramp,
+#                   threshold_v_short_square, trough_t_long_square, trough_t_ramp,
+#                   trough_t_short_square, trough_v_long_square, trough_v_ramp,
+#                   trough_v_short_square, upstroke_downstroke_ratio_long_square,
+#                   upstroke_downstroke_ratio_ramp, upstroke_downstroke_ratio_short_square,
+#                   v_rest, vm_for_sag)
+    print insertData
     cursobj.execute(insertStr, insertData)
     specFXTableID = cursobj.lastrowid
     cnx.commit()
 
 #     sys.exit("Not an error message")
 
+    ####### SWEEP/EXPERIMENT #######
     # Add the sweep/experiment to the database
     sweeps = ctc.get_ephys_sweeps(specimen)
     for sweep in sweeps:
         sweepNum = sweep['sweep_number']
-        print ("sweep_number:", sweepNum, 
-               "   stimulus:", sweep['stimulus_name'], 
-               "   num_spikes", sweep['num_spikes'])
-        print sweep
+        print "Processing experiment ", sweepNum
+
+#         print ("sweep_number:", sweepNum, 
+#                "   stimulus:", sweep['stimulus_name'], 
+#                "   num_spikes", sweep['num_spikes'])
+#         print sweep
         if sweep['stimulus_name'] not in ['Long Square', 'Short Square']:
             continue
 
         sweep_data = specEphysData.get_sweep(sweepNum)
-        print sweep_data
-        print "Index Range: ", sweep_data["index_range"] 
+#         print sweep_data
+#         print "Index Range: ", sweep_data["index_range"] 
         sweep_metadata = specEphysData.get_sweep_metadata(sweepNum)
-        print sweep_metadata
+#         print sweep_metadata
+        
+        sampling_rate = sweep_data["sampling_rate"] # in Hz
+#         print "Sampling Rate: ", sampling_rate        
         
         # Need to check if this sweep is actually an experiment
         # (not implemented yet)
         
-        print (type(specimenTableID), type(sweepNum), type(None), 
-               type(sweep_metadata['aibs_stimulus_name']), 
-               type(sweep_metadata['aibs_stimulus_amplitude_pa']))
+#         print (type(specimenTableID), type(sweepNum), type(None), 
+#                type(sweep_metadata['aibs_stimulus_name']), 
+#                type(sweep_metadata['aibs_stimulus_amplitude_pa']))
         insertStr = ('insert into experiments (id, specimenIDX, ' + 
-                     'abiExperimentID, expFXID, stimulusType, stimCurrent) ' + 
-                     'values (%s, %s, %s, %s, %s, %s)')
-        insertData = (int(0), specimenTableID, sweepNum, None, 
+                     'abiExperimentID, expFXID, sampling_rate, ' + 
+                     'stimulusType, stimCurrent) ' + 
+                     'values (%s, %s, %s, %s, %s, %s, %s)')
+        insertData = (int(0), specimenTableID, sweepNum, None, sampling_rate, 
                       sweep_metadata['aibs_stimulus_name'], 
                       float(sweep_metadata['aibs_stimulus_amplitude_pa']))
         cursobj.execute(insertStr, insertData)
         experimentIDX = cursobj.lastrowid
-        print "experimentIDX:", experimentIDX
+#         print "experimentIDX:", experimentIDX
 
 
 #     # Create the data plot
@@ -492,8 +671,7 @@ for specimen in specimens:
         i *= 1e12 # to pA
         v *= 1e3 # to mV
 #     
-        sampling_rate = sweep_data["sampling_rate"] # in Hz
-        print "Sampling Rate: ", sampling_rate
+        
         t = np.arange(0, len(v)) * (1.0 / sampling_rate)
 #     
 #     print "    -- plotting sweep data"
@@ -543,10 +721,10 @@ for specimen in specimens:
                 analysis_start = 1.0
                 analysis_duration = 2.0
                  
-        print 'analysis_start', analysis_start, 'analysis_duration', analysis_duration
+#         print 'analysis_start', analysis_start, 'analysis_duration', analysis_duration
         fx.process_instance("", v, i, t, analysis_start, analysis_duration, "")
         feature_data = fx.feature_list[0].mean
-        print "feature_data: ", feature_data 
+#         print "feature_data: ", feature_data 
          
         pulseCurrent = sweep_metadata['aibs_stimulus_amplitude_pa']
          
@@ -563,11 +741,11 @@ for specimen in specimens:
         else:
             ISIMean = None
              
-        if numSpikes == 1:
-            print 'first spike time: ', feature_data['spikes'][0]['t']
+#         if numSpikes == 1:
+#             print 'first spike time: ', feature_data['spikes'][0]['t']
      
         if numSpikes >= 2:
-            print 'second spike time: ', feature_data['spikes'][1]['t']
+#             print 'second spike time: ', feature_data['spikes'][1]['t']
             ISIFirst = feature_data['spikes'][1]['t'] - feature_data['spikes'][0]['t']
         else:
             ISIFirst = None
@@ -602,16 +780,27 @@ for specimen in specimens:
         else:
             abiFXID = None
      
-        print 'hasSpikes:',  hasSpikes 
-        print 'numSpikes:',  numSpikes 
-        print 'latency:',    latency 
-        print 'ISIMean:',    ISIMean 
-        print 'ISIFirst:',   ISIFirst 
-        print 'ISICV:',      ISICV 
-        print 'adaptation:', adaptation 
-        print 'threshold:', threshold
-        print 'averageSpikePeak', averageSpikePeak 
-         
+#         print 'hasSpikes:',  hasSpikes 
+#         print 'numSpikes:',  numSpikes 
+#         print 'latency:',    latency 
+#         print 'ISIMean:',    ISIMean 
+#         print 'ISIFirst:',   ISIFirst 
+#         print 'ISICV:',      ISICV 
+#         print 'adaptation:', adaptation 
+#         print 'threshold:', threshold
+#         print 'averageSpikePeak', averageSpikePeak
+
+#         if numSpikes >= 2:
+#             sfx = EphysSweepFeatureExtractor(t, v, i, 
+#                                              analysis_start, analysis_duration)
+# #             sfx = EphysSweepFeatureExtractor(id=abiFXID)
+# #             sfxDict = sfx.as_dict()
+# #             pprint(sfxDict)
+#             burstMetrics = sfx.burst_metrics()
+#             pprint(burstMetrics)
+#             sys.exit("Not an error message")
+#AttributeError: EphysSweepFeatureExtractor instance has no attribute '_spikes_df'
+
         # Add the feature extraction to the database
         insertStr = ('insert into experimentFXs (' + 
                      'id, expID, abiFXID, adaptation, ' + 
@@ -624,12 +813,12 @@ for specimen in specimens:
                       hasSpikes, int(numSpikes), 
                       ISIFirst, ISIMean, ISICV, averageSpikePeak, 
                       latency, threshold) 
-        print 'insertStr:', insertStr
-        print "Inserting into featureExtractions table now"
+#         print 'insertStr:', insertStr
+#         print "Inserting into featureExtractions table now"
         cursobj.execute(insertStr, insertData)
         fxID = cursobj.lastrowid
         cnx.commit()
-        print fxID, experimentIDX
+#         print fxID, experimentIDX
          
         # Add the fx to the experiment
         updateStr = 'update experiments set expFXID=%s where id=%s'
@@ -637,7 +826,7 @@ for specimen in specimens:
         cursobj.execute(updateStr, updateData)
         cnx.commit()
         
-
+#     sys.exit("Not an error message")
 
 cnx.close()
 print "Script complete."
