@@ -1,5 +1,8 @@
 print "Starting script"
 
+# TODO: Tidy up; eliminate memory leaks; add final features; begin working on processing
+# functions such as calculating statistics of each parameter
+
 # http://stackoverflow.com/questions/17053435/mysql-connector-python-insert-python-variable-to-mysql-table    
     
 redoTables = True # True/False
@@ -261,6 +264,15 @@ if redoTables:
 #              '''avg_rate double, ''' +                              # xcf ok
              '''hasSpikes bool, ''' +                               # xcf ok
              '''numSpikes int(11), ''' +                            # xcf ok
+             '''hasBursts bool, ''' +
+             '''numBursts int(11), ''' +
+             '''maxBurstiness double, ''' +
+             '''hasPauses bool, ''' +
+             '''numPauses int(11), ''' +
+             '''pauseFraction double, ''' +
+             '''hasDelays bool, ''' +
+             '''delayRatio double, ''' +
+             '''delayTau double, ''' +
              '''first_isi double, ''' +                             # xcf ok
              '''mean_isi double, ''' +                              # xcf ok
 #              '''median_isi double, ''' +                            # xcf ok
@@ -270,10 +282,6 @@ if redoTables:
              '''threshold double, ''' +
              '''FOREIGN KEY(expID) REFERENCES experiments(id) ON DELETE CASCADE, ''' +
              '''PRIMARY KEY (id)) ENGINE=InnoDB''')
-#              '''hasBursts bool, ''' +                             # xcf    NO
-#              '''numBursts int(11), ''' +                          # xcf    NO 
-#              '''hasPauses bool, ''' +                             # xcf    NO
-#              '''numPauses int(11), ''' +                          # xcf    NO
 
     try:
         cursobj.execute(mycmd)
@@ -292,10 +300,11 @@ if redoTables:
 # [2]
 print "\n[2]: Install the ABI Datasets into the database"; sys.stdout.flush()
 # specimens = [484635029]
-specimens = [
-            484635029,
-            469801569,
-            469753383]
+specimens = [321707905] # Hopefully has bursts
+# specimens = [
+#             484635029,
+#             469801569,
+#             469753383]
 # specimens = [312883165,484635029]
 # specimens with models only 
 # specimens = [
@@ -410,7 +419,7 @@ for specimen in specimens:
             
     # handle specimen id not found 
     
-    ####### SPECIMEN #######
+    ####### SPECIMENS #######
     # Add the specimen to the database
     donorID = specCell['donor_id']
 #     print "specCell donor:", donorID
@@ -429,7 +438,6 @@ for specimen in specimens:
     specimenTableID = cursobj.lastrowid
 #     print "specimenTableID:", specimenTableID
     cnx.commit()
-
 
 #v--------------------
     # Add the specimen feature extraction data to the database
@@ -521,8 +529,6 @@ for specimen in specimens:
     numKeys = len(keys)
     print "Number of keys:", numKeys
     
-#^--------------------
-
 #     insertStr = ('insert into specimenFXs (id, specID, hasSpikes, ' +
 #                  'hero_sweep_adaptation, hero_sweep_first_isi, ' + 
 #                  'hero_sweep_mean_isi, hero_sweep_median_isi, ' + 
@@ -573,9 +579,6 @@ for specimen in specimens:
     print insertData
     
 #     insertStr.append(') values (')
-    
-    
-    
 #     insertData = (int(0), specimenTableID, hasSpikes, 
 #                   hero_sweep_adaptation, hero_sweep_first_isi, 
 #                   hero_sweep_mean_isi, hero_sweep_median_isi,
@@ -609,7 +612,7 @@ for specimen in specimens:
 
 #     sys.exit("Not an error message")
 
-    ####### SWEEP/EXPERIMENT #######
+    ####### SWEEPS/EXPERIMENTS #######
     # Add the sweep/experiment to the database
     sweeps = ctc.get_ephys_sweeps(specimen)
     for sweep in sweeps:
@@ -790,14 +793,75 @@ for specimen in specimens:
 #         print 'threshold:', threshold
 #         print 'averageSpikePeak', averageSpikePeak
 
-#         if numSpikes >= 2:
-#             sfx = EphysSweepFeatureExtractor(t, v, i, 
-#                                              analysis_start, analysis_duration)
-# #             sfx = EphysSweepFeatureExtractor(id=abiFXID)
-# #             sfxDict = sfx.as_dict()
-# #             pprint(sfxDict)
-#             burstMetrics = sfx.burst_metrics()
-#             pprint(burstMetrics)
+        sfx = EphysSweepFeatureExtractor(t, v, i, 
+                                         analysis_start, analysis_duration)
+#             sfx = EphysSweepFeatureExtractor(id=abiFXID)
+#             sfxDict = sfx.as_dict()
+#             pprint(sfxDict)
+        if numSpikes >= 2:  # process_spikes() does not work if fewer than 2
+            print "numSpikes: ", numSpikes
+#             print 'analysis_start', analysis_start, 'analysis_duration', analysis_duration
+            try:
+                sfx.process_spikes()
+#                 print "Spikes processed"
+                try:
+                    print "Burst data for this experiment (max_burstiness_index - normalized max rate in burst vs out, num_bursts - number of bursts detected):"
+                    burstMetrics = sfx.burst_metrics()
+                    pprint(burstMetrics)
+                    maxBurstiness = burstMetrics[0]
+                    numBursts = burstMetrics[1]
+                    hasBursts = numBursts!=0
+                except:
+                    if useTraceback:
+                        traceback.print_exc()
+                    print "No burst in this experiment"
+                    
+                try:
+                    print "Pause data for this experiment (num_pauses - number of pauses detected, pause_fraction - fraction of interval [between start and end] spent in a pause):"
+                    pauseMetrics = sfx.pause_metrics()
+                    pprint(pauseMetrics)
+                    numPauses = pauseMetrics[0]
+                    hasPauses = numPauses!=0
+                    pauseFraction = pauseMetrics[1]
+                except:
+                    if useTraceback:
+                        traceback.print_exc()
+                    print "No pause in this experiment"
+                    
+                try: 
+                    print "Delay data for this experiment (delay_ratio - ratio of latency to tau [higher means more delay], tau - dominant time constant of rise before spike):"
+                    delayMetrics = sfx.delay_metrics()
+                    pprint(delayMetrics)
+                    delayRatio = delayMetrics[0]
+                    delayTau = delayMetrics[1]
+                    if delayTau!=0.0:
+                        hasDelays = True
+                    else:
+                        hasDelays = False
+                        delayTau = None
+                except:
+                    if useTraceback:
+                        traceback.print_exc()
+                    print "No delay in this experiment"
+            except:
+                if useTraceback:
+                    traceback.print_exc()
+                print "Spikes could not be processed"
+        else:
+            hasBursts = False
+            numBursts = 0
+            maxBurstiness = None
+            hasPauses = False
+            numPauses = 0
+            pauseFraction = None
+            hasDelays = False
+            delayRatio = None
+            delayTau = None
+            
+        print "hasBursts:", hasBursts, ", numBursts:", numBursts, ", maxBurstiness:", maxBurstiness
+        print "hasPauses:", hasPauses, ", numPauses:", numPauses, ", pauseFraction:", pauseFraction
+        print "hasDelays:", hasDelays, ", delayRatio:", delayRatio, ", delayTau:", delayTau
+
 #             sys.exit("Not an error message")
 #AttributeError: EphysSweepFeatureExtractor instance has no attribute '_spikes_df'
 
@@ -805,16 +869,23 @@ for specimen in specimens:
         insertStr = ('insert into experimentFXs (' + 
                      'id, expID, abiFXID, adaptation, ' + 
                      'hasSpikes, numSpikes, ' + 
+                     'hasBursts, numBursts, maxBurstiness, ' + 
+                     'hasPauses, numPauses, pauseFraction, ' +
+                     'hasDelays, delayRatio, delayTau, ' +
                      'first_isi, mean_isi, isi_cv, f_peak, latency, threshold) ' + 
                      'values(%s, %s, %s, %s, ' + 
-                     '%s, %s, ' + 
+                     '%s, %s, ' +
+                     '%s, %s, %s, %s, %s, %s, %s, %s, %s, ' + 
                      '%s, %s, %s, %s, %s, %s)')
         insertData = (0, experimentIDX, abiFXID, adaptation, 
                       hasSpikes, int(numSpikes), 
+                      hasBursts, int(numBursts), maxBurstiness,
+                      hasPauses, int(numPauses), pauseFraction, 
+                      hasDelays, delayRatio, delayTau,
                       ISIFirst, ISIMean, ISICV, averageSpikePeak, 
                       latency, threshold) 
-#         print 'insertStr:', insertStr
-#         print "Inserting into featureExtractions table now"
+        print 'insertStr:', insertStr
+        print "Inserting into featureExtractions table now"
         cursobj.execute(insertStr, insertData)
         fxID = cursobj.lastrowid
         cnx.commit()
