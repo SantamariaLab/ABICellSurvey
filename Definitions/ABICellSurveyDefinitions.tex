@@ -8,6 +8,7 @@
 \usepackage{longtable}
 \usepackage{tabu}
 \usepackage{textcomp}
+\usepackage{multirow}
 
 \title{Feature Definitions for ABICellSurvey Database}
 
@@ -29,7 +30,7 @@ The mice that contributed the cells/specimens; each with a unique id. Table popu
 \begin{tabu}{X[2,r,p]|X[3,l,p]|X[6,l,p]}\savetabu{abi}
 \tabulinesep = 1mm
 \extrarowsep = 1mm
-Name & Definition & Source/Provenance \\
+\normalsize{Name} & \normalsize{Definition} & \normalsize{Source/Provenance} \\
 \hline 
 id (PK)& Donor index & Internal to database for table joins \\ 
 abiDonorID & Donor ID (an integer) & ABI Donor ID; from CellTypesCache \\
@@ -44,7 +45,7 @@ A specimen is a cell found in a brain slice.
 
 \vspace{5mm}
 \begin{tabu}{\usetabu{abi}}
-Name & Definition & Source/Provenance \\
+\normalsize{Name} & \normalsize{Definition} & \normalsize{Source/Provenance} \\
 \hline
 id (PK) 		& specimen index 			& Internal to database for table joins \\
 donorID (FK)	& donor index 				& Internal to database for table joins \\
@@ -57,7 +58,7 @@ An experiment is a trimmed sweep, which is a specific stimulus protocol/recordin
 
 \vspace{5mm}
 \begin{tabu}{\usetabu{abi}}
-Name & Definition & Source/Provenance \\
+\normalsize{Name} & \normalsize{Definition} & \normalsize{Source/Provenance} \\
 \hline
 id	(PK)			& experiment index 					& Internal to database for table joins \\
 specimenIDX (FK)	& specimen index 					& Internal to database for table joins \\
@@ -77,7 +78,7 @@ Feature extraction data for individual experiments (each experiment is a trimmed
 \begin{tabu}{X[1,r,p]|X[5,l,p]|X[4,l,p]}
 %\tabulinesep = 1mm
 \extrarowsep = 2mm
-Name & Definition & Source/Provenance \\
+\normalsize{Name} & \normalsize{Definition} & \normalsize{Source/Provenance} \\
 \hline
 id (PK)			&  experiment FX index 										& Internal to database for table joins  \\
 expID (FK)		&  experiment index 										& Internal to database for table joins  \\
@@ -119,120 +120,131 @@ threshold		& averaged over all spikes in sweep (with some quality assurance): th
 Aggregate feature extraction data for the specimen obtained either from specific sweeps (the hero sweep, which is the first sweep performed that shows spiking behavior), or from all long square sweeps, or from all sweeps involving the specimen.  The ``hero sweep'' is the sweep with long square stimulus at the rheobase current, or the current that first gives spikes (see extract\_cell\-features()).
 
 \vspace{5mm}
+\tabulinesep =^ 0.5mm
+%\extrarowsep =^ 1.5mm
 \begin{longtabu} {X[3,r,p]|X[4,l,p]|X[5,l,p]}
-Name & Definition & Source/Provenance \\
+\normalsize{Name} & \normalsize{Definition} & \normalsize{Source/Provenance} \\
 \hline
-\multicolumn{3}{l}{General} \\
+%\extrarowsep =^ 1.5mm
+\multicolumn{3}{m{\columnwidth}}{\normalsize{General}} \\
+%\extrarowsep =^ 0.0mm
 \hline
 id (PK)								& feature extraction index  & Internal to database for table joins  \\
 specID (FK)							& specimen index & Internal to database for table joins  \\
 abiFXID 							& abi's feature extraction ID & ABI's assignment \\
 \hline
 hasSpikes 							& T/F if any experiment has spikes. Note: sweep/experiment not distinguished; this is actually hasSpikes for any \textit{sweep} in the specimen   							
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features \\
-has\_bursts 						& T/F if any sweep has at least one burst & custom using experimentFX info (note: cell\_ephys\_features may give hero sweep info instead)\\
-has\_delays 						& T/F if any sweep has at least one delay & custom using experimentFX info (note: cell\_ephys\_features may give hero sweep info instead) \\
-has\_pauses 						& T/F if any sweep has at least one pause & custom using experimentFX info (note: cell\_ephys\_features may give hero sweep info instead) \\
+									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features / ABIEPhysWP pp 8-9 \\
+has\_bursts 						& T/F if any sweep has at least one burst & custom using experimentFX info (note: cell\_ephys\_features may give hero sweep info instead) / ABIEPhysWP pp 10 \\
+has\_delays 						& T/F if any sweep has at least one delay & custom using experimentFX info (note: cell\_ephys\_features may give hero sweep info instead) / ABIEPhysWP pp 10 \\
+has\_pauses 						& T/F if any sweep has at least one pause & custom using experimentFX info (note: cell\_ephys\_features may give hero sweep info instead) / ABIEPhysWP pp 10 \\
 \hline
 rheobase\_current 					& Stimulus current at first suprathreshold stimulus to produce spikes (rheobase); using long square sweeps only 
 									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features / ABIEPhysWP pp 11 \\
 \hline
 electrode\_0\_pa 					& ?? -- don't know what electrode\_0 is 
 										& via CellTypesCache \textrightarrow get\_ephys\_features \\
-hemisphere 							& NOT USED YET &  \\
-dendrite\_type						& NOT USED YET & \\
-input\_resistance\_mohm 			& NOT USED YET &  \\
+hemisphere 							& Left or right source of specimen & via CellTypesCache \textrightarrow get\_cells() \\
+dendrite\_type						& spiny, aspiny, sparsely spiny & via CellTypesCache \textrightarrow get\_cells()\\
+input\_resistance\_mohm 			& NOT SURE WHAT THIS IS & via CellTypesCache \textrightarrow get\_cells() \\
 %
 \hline
-\multicolumn{3}{l}{Subthreshold} \\
+\pagebreak
+\hline
+\multicolumn{3}{m{\columnwidth}}{\normalsize{Subthreshold}} \\
 \tabuphantomline
 \hline
-v\_rest 							& Pre--stimulus membrane potential averaged over all long square responses & via CellTypesCache \textrightarrow get\_ephys\_features / ABIEPhysWP pp 12 \\
-ri	 								& Linear fit of VI curve of long squares with negative stimulus $>=$ -100pA & via CellTypesCache \textrightarrow get\_ephys\_features / ABIEPhysWP pp 12 \\
-tau 								&  ``membrane time constant in seconds'' done using hyperpolarizing step sweeps only; average for the long square sweeps (see membrane\_time\_constant() in EphysCellFeatureExtractor) 
-									& via CellTypesCache \textrightarrow get\_ephys\_features; see estimate\_time\_constant() in EphysSweepFeatureExtractor / ABIEPhysWP pp 12 \\
-sagFraction							&  b/a, where a is peak deflection and b is steady-state - min. Which sweep types? & via CellTypesCache \textrightarrow get\_ephys\_features / ABIEPhysWP pp 12 \\
-vm\_for\_sag 						& Membrane potential at which sagFraction is calculated (Peak deflection?) & via CellTypesCache \textrightarrow get\_ephys\_features / ABIEPhysWP pp 12 \\
-seal\_gohm 							& ?? & via CellTypesCache \textrightarrow get\_ephys\_features \\	
+v\_rest 							& Pre--stimulus membrane potential (mV)averaged over all long square responses & via CellTypesCache \textrightarrow get\_ephys\_features / ABIEPhysWP pp 12 \\
+ri	 								& Linear fit of VI curve of long squares with negative stimulus $>=$ -100pA (MOhms, I believe) & via CellTypesCache \textrightarrow get\_ephys\_features / ABIEPhysWP pp 12 \\
+tau 								&  ``membrane time constant in seconds'' done using hyperpolarizing step sweeps only; average for the long square sweeps  
+									& via CellTypesCache \textrightarrow get\_ephys\_features; see estimate\_time\_constant() in EphysSweepFeatureExtractor; see membrane\_time\_constant() in EphysCellFeatureExtractor / ABIEPhysWP pp 12 \\
+sagFraction							&  b/a, where a is peak deflection and b is (steady-state - min). Which sweep types? & via CellTypesCache \textrightarrow get\_ephys\_features / ABIEPhysWP pp 12 \\
+vm\_for\_sag 						& Membrane potential (mV) at which sagFraction is calculated (Peak deflection?) & via CellTypesCache \textrightarrow get\_ephys\_features / ABIEPhysWP pp 12 \\
+seal\_gohm 							& ?? (GOhm) & via CellTypesCache \textrightarrow get\_ephys\_features \\	
 \hline
-\multicolumn{3}{l}{Suprathreshold --- Single action potential features (First action potential only; averaged over repeated sweeps)} \\
+\pagebreak
+\hline
+\multicolumn{3}{m{\columnwidth}}{\normalsize{Suprathreshold --- Single action potential features} (First action potential only; averaged over repeated sweeps)} \\
 \multicolumn{3}{r}{Long square--rheobase, Short square--lowest reliable stimulus, Ramp--?? } \\
 \tabuphantomline
 \hline
-threshold\_i\_long\_square 			&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-threshold\_i\_ramp 					&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-threshold\_i\_short\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-threshold\_t\_long\_square 			&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-threshold\_t\_ramp 					&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-threshold\_t\_short\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-threshold\_v\_long\_square 			&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-threshold\_v\_ramp 					&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-threshold\_v\_short\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-\hline
-peak\_t\_long\_square 				&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-peak\_t\_ramp 						&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-peak\_t\_short\_square 				&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-peak\_v\_long\_square 				&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-peak\_v\_ramp 						&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-peak\_v\_short\_square 				&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-\hline
-trough\_t\_long\_square 			&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-trough\_t\_ramp 					&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-trough\_t\_short\_square 			&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-trough\_v\_long\_square 			&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-trough\_v\_ramp 					&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-trough\_v\_short\_square 			&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-\hline
-fast\_trough\_t\_long\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\	
-fast\_trough\_t\_ramp 				&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-fast\_trough\_t\_short\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-fast\_trough\_v\_long\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-fast\_trough\_v\_ramp 				&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-fast\_trough\_v\_short\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features  \\
-\hline
-slow\_trough\_t\_long\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-slow\_trough\_t\_ramp 				&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-slow\_trough\_t\_short\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-slow\_trough\_v\_long\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features \\	
-slow\_trough\_v\_ramp 				&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-slow\_trough\_v\_short\_square 		&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-\hline
+threshold\_i\_long\_square 			& \multirow{9}{*}{\parbox{\columnwidth}{threshold time (s), current (pA), and voltage (mV) \\ for the three stimulus types}} 
+									& \multirow{36}{*}{via CellTypesCache \textrightarrow get\_ephys\_features  / ABIEPhysWP pp 8-9} \\
+\tabuphantomline
+threshold\_i\_ramp 					& & \\
+threshold\_i\_short\_square 		& & \\
+threshold\_t\_long\_square 			& & \\
+threshold\_t\_ramp 					& & \\
+threshold\_t\_short\_square 		& & \\
+threshold\_v\_long\_square 			& & \\
+threshold\_v\_ramp 					& & \\
+threshold\_v\_short\_square 		& & \\
+%\hline
+\tabucline{1-2}
+peak\_t\_long\_square 				& \multirow{6}{*}{\parbox{\columnwidth}{peak voltage (mV) and its time of occurrence (s) \\for the three stimulus types \\(IS THIS FIRST AP ONLY \\OR ENTIRE ANALYSIS PERIOD?}} 
+									& \\ 
+peak\_t\_ramp 						& & \\
+peak\_t\_short\_square 				& & \\
+peak\_v\_long\_square 				& & \\
+peak\_v\_ramp 						& & \\
+peak\_v\_short\_square 				& & \\
+\tabucline{1-2}
+trough\_t\_long\_square 			& \multirow{6}{*}{\parbox{\columnwidth}{trough time (s) and voltage (mV) \\ for the three stimulus types}} 
+									& \\ 
+trough\_t\_ramp 					& & \\
+trough\_t\_short\_square 			& & \\
+trough\_v\_long\_square 			& & \\
+trough\_v\_ramp 					& & \\
+trough\_v\_short\_square 			& & \\
+\tabucline{1-2}
+fast\_trough\_t\_long\_square 		& \multirow{6}{*}{\parbox{\columnwidth}{fast trough time (s) and voltage (mV) \\ for the three stimulus types}} 
+									& \\ 
+fast\_trough\_t\_ramp 				& & \\
+fast\_trough\_t\_short\_square 		& & \\
+fast\_trough\_v\_long\_square 		& & \\
+fast\_trough\_v\_ramp 				& & \\
+fast\_trough\_v\_short\_square 		& & \\
+\tabucline{1-2}
+slow\_trough\_t\_long\_square 		& \multirow{6}{*}{\parbox{\columnwidth}{slow trough time (s) and voltage (mV) \\ for the three stimulus types}} 
+									& \\ 
+slow\_trough\_t\_ramp 				& & \\
+slow\_trough\_t\_short\_square 		& & \\
+slow\_trough\_v\_long\_square 		& & \\	
+slow\_trough\_v\_ramp 				& & \\
+slow\_trough\_v\_short\_square 		& & \\
+\tabucline {1-2}
+\tabucline [1pt on 1.5pt off 2pt]{3-3}
+\pagebreak
+\tabucline {1-2}
+\tabucline [1pt on 1.5pt off 2pt]{3-3}
 upstroke\_downstroke\_ratio\_long\_square 
-									&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-upstroke\_downstroke\_ratio\_ramp 	&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-upstroke\_downstroke\_ratio\_short\_square 
-									&  & via CellTypesCache \textrightarrow get\_ephys\_features \\
-
+									& \multirow{3}{*}{\parbox{\columnwidth}{downstroke ratio \\ for the three stimulus types}} 
+									& \\
+upstroke\_downstroke\_ratio\_ramp 	& \\
+upstroke\_downstroke\_ratio\_short\_square & \\
 \hline
-\multicolumn{3}{l}{Suprathreshold --- Spike train features} \\
+\multicolumn{3}{m{\columnwidth}}{\normalsize{Suprathreshold --- Spike train features}} \\
 \tabuphantomline
 \multicolumn{3}{c}{Hero sweep (Long square sweep at rheobase)} \\
 \hline
 hero\_sweep\_id			 			& sweep id of the hero sweep 
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features  / ABIEPhysWP pp 10 \\
-hero\_sweep\_avg\_firing\_rate		& average firing rate of the hero sweep 
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features  / ABIEPhysWP pp 10 \\
-hero\_sweep\_adaptation 			& adaptation of the hero sweep 
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features  / ABIEPhysWP pp 10 \\
-hero\_sweep\_first\_isi 			& first isi of the hero sweep 
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features  / ABIEPhysWP pp 10 \\
-hero\_sweep\_mean\_isi 				& mean isi of the hero sweep
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features  / ABIEPhysWP pp 10 \\
-hero\_sweep\_median\_isi 			& median isi of the hero sweep
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features  / ABIEPhysWP pp 10 \\
-hero\_sweep\_isi\_cv 				& coefficient of variation of the isis of the hero sweep 
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features  / ABIEPhysWP pp 10 \\
-hero\_sweep\_latency 				& latency of the hero sweep
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features  / ABIEPhysWP pp 10 \\
-hero\_sweep\_stim\_amp 				&  stimulation amperage of the hero sweep in pa
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features \\
-hero\_sweep\_v\_baseline 			&  voltage of ``long, flat [pre-stimulus] interval'' for the hero sweep, in mv
-									& via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features \\
+									& \multirow{8}{*}{\parbox{\columnwidth}{via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features \\ / ABIEPhysWP pp 10}} \\
+hero\_sweep\_avg\_firing\_rate		& average firing rate of the hero sweep (spikes per second) & \\
+hero\_sweep\_adaptation 			& adaptation of the hero sweep 								& \\
+hero\_sweep\_first\_isi 			& first isi of the hero sweep (s)							& \\
+hero\_sweep\_mean\_isi 				& mean isi of the hero sweep (s)							& \\
+hero\_sweep\_median\_isi 			& median isi of the hero sweep (s)							& \\
+hero\_sweep\_isi\_cv 				& coefficient of variation of the isis of the hero sweep 	& \\
+hero\_sweep\_latency 				& latency of the hero sweep	(s)								& \\
+\hline
+hero\_sweep\_stim\_amp 				&  stimulation amperage of the hero sweep (pA)
+									& \multirow{2}{*}[-1mm]{via CellTypesCache \textrightarrow get\_ephys\_sweeps \textrightarrow extract\_cell\_features} \\
+hero\_sweep\_v\_baseline 			&  voltage of ``long, flat [pre-stimulus] interval'' for the hero sweep (mv) & \\
 \hline
 \multicolumn{3}{c}{All long square sweeps} \\
 \tabuphantomline
 \hline
-f\_i\_curve\_slope 					& straight--line fit of fI curve (avg firing rate, stimulus amplitude) for all long square sweeps 
+f\_i\_curve\_slope 					& straight--line fit of fI curve (avg firing rate (Hz)/stimulus amplitude (pA)) for all long square sweeps 
 									& via CellTypesCache \textrightarrow get\_ephys\_features  \\
 \hline
 \tabuphantomline
