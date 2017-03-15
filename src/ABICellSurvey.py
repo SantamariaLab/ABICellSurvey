@@ -261,28 +261,28 @@ if redoTables:
              '''id int(11) NOT NULL AUTO_INCREMENT, ''' +
              '''expID int(11) NOT NULL, ''' +  
              '''abiFXID int(11) NOT NULL, ''' +
-             '''analysisStart double, ''' +
-             '''analysisDuration double, ''' +
-             '''adaptation double, ''' +                            # xcf ok
-             '''avgFiringRate double, ''' +                               # xcf ok
-             '''hasSpikes bool, ''' +                               # xcf ok
-             '''numSpikes int(11), ''' +                            # xcf ok
-             '''hasBursts bool, ''' +
-             '''numBursts int(11), ''' +
-             '''maxBurstiness double, ''' +
-             '''hasPauses bool, ''' +
-             '''numPauses int(11), ''' +
-             '''pauseFraction double, ''' +
-             '''hasDelays bool, ''' +
-             '''delayRatio double, ''' +
-             '''delayTau double, ''' +
-             '''first_isi double, ''' +                             # xcf ok
-             '''mean_isi double, ''' +                              # xcf ok
-#              '''median_isi double, ''' +                            # xcf ok
-             '''isi_cv double, ''' +                                # xcf ok
-             '''f_peak double, ''' +  
-             '''latency double, ''' +                               # xcf ok
-             '''threshold double, ''' +
+             '''analysisStart double, ''' +                         #           in seconds
+             '''analysisDuration double, ''' +                      #           in seconds
+             '''adaptation double, ''' +                            # xcf ok    
+             '''avgFiringRate double, ''' +                         # xcf ok    spikes per second
+             '''hasSpikes bool, ''' +                               # xcf ok    1=true;0=false
+             '''numSpikes int(11), ''' +                            # xcf ok    
+             '''hasBursts bool, ''' +                               #           1=true;0=false                                   
+             '''numBursts int(11), ''' +                            #
+             '''maxBurstiness double, ''' +                         #
+             '''hasPauses bool, ''' +                               #           1=true;0=false
+             '''numPauses int(11), ''' +                            #           
+             '''pauseFraction double, ''' +                         #           %
+             '''hasDelays bool, ''' +                               #           REMOVE THIS
+             '''delayRatio double, ''' +                            #           
+             '''delayTau double, ''' +                              #           
+             '''first_isi double, ''' +                             # xcf ok    in seconds
+             '''mean_isi double, ''' +                              # xcf ok    in seconds
+#              '''median_isi double, ''' +                          # xcf ok    in seconds
+             '''isi_cv double, ''' +                                # xcf ok    dimensionless
+             '''f_peak double, ''' +                                #           in milliVolts
+             '''latency double, ''' +                               # xcf ok    in seconds
+             '''threshold double, ''' +                             #           in milliVolts
              '''FOREIGN KEY(expID) REFERENCES experiments(id) ON DELETE CASCADE, ''' +
              '''PRIMARY KEY (id)) ENGINE=InnoDB''')
 
