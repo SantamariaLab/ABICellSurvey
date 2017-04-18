@@ -10,7 +10,7 @@ manifestFile = ('C:/Users/David/Dropbox/Documents/'
 resetDB = True  # True/False; redo all tables or add to them?
 verbose = True  # Lots of status printing
 
-isNMRemote = False
+#isNMRemote = False
 
 # Choose specimens and experiments; these are just for testing
 #specimens = [321707905, 469753383]
