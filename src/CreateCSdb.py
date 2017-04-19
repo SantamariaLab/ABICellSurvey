@@ -3,18 +3,21 @@ print "Starting script CreateCSdb"
 import CSdbconfig as cfg
 from ABICellSurvey import CreateDB
 
-databaseName = 'ABICellSurvey'
-manifestFile = ('C:/Users/David/Dropbox/Documents/'
-                + 'SantamariaLab/Projects/Fractional/ABI-FLIF/FeatExtractDev/'
-                + 'cell_types/cell_types_manifest.json')
+databaseName = 'ABICellSurvey2'
+
+manifestFile = ('C:/Users/David/Dropbox/Documents/SantamariaLab/Projects/Fractional/ABI-FLIF/Cache/' +
+                'cell_types/cell_types_manifest.json')
+# manifestFile = ('C:/Users/David/Dropbox/Documents/'
+#                 + 'SantamariaLab/Projects/Fractional/ABI-FLIF/FeatExtractDev/'
+#                 + 'cell_types/cell_types_manifest.json')
 resetDB = True  # True/False; redo all tables or add to them?
 verbose = True  # Lots of status printing
 
 #isNMRemote = False
 
 # Choose specimens and experiments; these are just for testing
-#specimens = [321707905, 469753383]
-specimens = [484635029]
+specimens = [321707905, 469753383]
+#specimens = [484635029]
 # specimens = [318808427]
 # specimens = [321707905] # Hopefully has bursts (no, but has delays/pauses)
 # specimens = [

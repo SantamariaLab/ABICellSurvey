@@ -10,7 +10,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
     # http://stackoverflow.com/questions/17053435/mysql-connector-python-insert-python-variable-to-mysql-table    
 
     if verbose:
-        print "Importing..."
+        print "CreateDB importing..."
         
     import sys
     from allensdk.ephys.extract_cell_features import extract_cell_features
@@ -21,7 +21,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
     
     import numpy as np
     from numpyconversion import NumpyMySQLConverter
-    import math
+    #import math
     
     from CellSurveyTableOps import dropTable, createDonorsTable
     from CellSurveyTableOps import createSpecimensTable, createSpecimenFXsTable
@@ -129,6 +129,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
     
     for cell in cells:
         addDonor(cnx, cell['donor_id'], cell['donor']['sex'], cell['donor']['name'])
+
         
     ####### ALL EPHYS FEATURES #######
     try:
@@ -136,17 +137,18 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
         allEphysFeatures = ctc.get_ephys_features()  
     except:
         # If no ephys features, we cannot do anything
-        print "No ephys features available"
+        print "No ephys features available; aborting program."
         sys.exit()
             
+            
     ####### SPECIMENS #######
-    # Get relevant info for specimens in input list
+    # Get relevant info for each specimen in input list
     if verbose:
         print "Processing each specimen in turn"; sys.stdout.flush()
         
     for specimen in specimenList:
 #        if verbose:
-        print 'Processing specimen:', specimen
+        print '@@@@@ Processing specimen:', specimen
         
         try:
             specEphysData = ctc.get_ephys_data(specimen)
@@ -155,6 +157,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
             print "No ephys data for specimen ", specimen, "; ignoring it."
             continue
     
+        ###### SPECIMEN >>> METADATA ######
         # Paw through the cells to find the metadata for the current specimen
         # The cell is a dictionary that has most of the "other" non-sweep stuff
         # we need such as cell averages, rheobase info, transgenic line, hemisphere, 
@@ -172,7 +175,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
         donorID = specCell['donor_id']
         specimenTableID = addSpecimen(cnx, donorID, specimen)
     
-        ####### SPECIMEN > SWEEPS/EXPERIMENTS #######
+        ####### SPECIMEN >>> SWEEPS/EXPERIMENTS #######
         # Change these to true if show in any sweep 
         cellHasBursts = False
         cellHasDelays = False
@@ -194,13 +197,10 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
             else:
                 abiFXID = None
                 
-            # We only pull in the type of sweeps we are interested in simulating
-            #    in the near term
-            # Screen out test, ramp, triple, and noise sweeps because they are
-            # not suitable for our simulations
-            if sweep['stimulus_name'] not in ['Long Square', 'Short Square',
-                                              'Square - 0.5ms Subthreshold',
-                                              'Square - 2s Suprathreshold']:
+            # Screen out most sweeps because they are not suitable for our 
+            #      simulations or because the stimulus type is not successful 
+            #      in use of process_spikes() (which we use for simulations)
+            if sweep['stimulus_name'] not in ['Long Square']:
                 print "    Stimulus type", sweep['stimulus_name'], "not supported."
                 continue
     
@@ -213,7 +213,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
             samplingRate = sweepData["sampling_rate"] # in Hz
             
             # Need to check if this sweep is actually an experiment
-            # (not implemented yet)
+            # [not implemented]
             
             # Add the experiment to the database
             experimentIDX = (#
@@ -267,90 +267,25 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
                 print "Skipping experiment: ", specimen, '/', sweepNum, " and continuing..."
                 continue
             
-            if swFXs['hasBursts']:
-                cellHasBursts = True
-                
-            if swFXs['hasPauses']:
-                cellHasPauses = True
-                
-            if swFXs['hasDelay']:
-                cellHasDelays = True
+            if swFXs['hasBursts']: cellHasBursts = True
 
-            swFXs['abiFXID']           = abiFXID
+            if swFXs['hasPauses']: cellHasPauses = True
 
-#             expFXs = {}
-#             expFXs['abiFXID']           = abiFXID
-#             expFXs['analysisStart']     = analysisStart
-#             expFXs['analysisDuration']  = analysisDuration
-#             expFXs['adaptation']        = swFXs['adaptation']
-#             expFXs['avgFiringRate']     = swFXs['avgFiringRate']
-#             expFXs['hasSpikes']         = swFXs['hasSpikes']
-#             expFXs['numSpikes']         = swFXs['numSpikes']
-#             expFXs['hasBursts']         = swFXs['hasBursts']
-#             expFXs['numBursts']         = swFXs['numBursts']
-#             expFXs['maxBurstiness']     = swFXs['maxBurstiness']
-#             expFXs['hasPauses']         = swFXs['hasPauses']
-#             expFXs['numPauses']         = swFXs['numPauses']
-#             expFXs['pauseFraction']     = pauseFraction
-#             expFXs['hasDelay']          = hasDelay
-#             expFXs['delayRatio']        = delayRatio
-#             expFXs['delayTau']          = delayTau
-#             expFXs['first_isi']         = first_isi
-#             expFXs['mean_isi']          = mean_isi
-#             expFXs['isi_cv']            = isi_cv
-#             expFXs['f_peak']            = f_peak
-#             expFXs['latency']           = latency
-#             expFXs['threshold']         = threshold
-            
+            if swFXs['hasDelay']: cellHasDelays = True
+
+            swFXs['abiFXID'] = abiFXID
+
+            ## Add the feature extraction to the database ##
             expFXs = dict(swFXs)
-            del expFXs['spikeData']
+            # individual spike data not going into the database directly
+            del expFXs['spikeData']   
             addExpFX(cnx, experimentIDX, expFXs)
-#             ## Add the feature extraction to the database ##
-#             insertStr = ('insert into experimentFXs (' + 
-#                          'id, expID, abiFXID, analysisStart, analysisDuration, ' + 
-#                          'adaptation, avgFiringRate, ' + 
-#                          'hasSpikes, numSpikes, ' + 
-#                          'hasBursts, numBursts, maxBurstiness, ' + 
-#                          'hasPauses, numPauses, pauseFraction, ' +
-#                          'hasDelay, delayRatio, delayTau, ' +
-#                          'first_isi, mean_isi, isi_cv, f_peak, latency, threshold) ' + 
-#                          'values(' + 
-#                          '%s, '*23 + '%s)')
-#             insertData = (0, experimentIDX, abiFXID,
-#                           analysis_start, analysis_duration,  
-#                           swFXs['adaptation'], swFXs['avgFiringRate'], 
-#                           swFXs['hasSpikes'], int(swFXs['numSpikes']), 
-#                           swFXs['hasBursts'], int(swFXs['numBursts']), 
-#                           swFXs['maxBurstiness'], swFXs['hasPauses'], 
-#                           int(swFXs['numPauses']), swFXs['pauseFraction'], 
-#                           swFXs['hasDelay'], swFXs['delayRatio'], 
-#                           swFXs['delayTau'], swFXs['ISIFirst'], swFXs['ISIMean'], 
-#                           swFXs['ISICV'], swFXs['averageSpikePeak'], 
-#                           swFXs['latency'], swFXs['threshold'])
-#             fixedInsertData = []
-#             for v in insertData:
-#                 if not isinstance(v, basestring):
-#                     if isinstance(v, float):
-#                         if math.isnan(v):
-#                             v = None
-#                 fixedInsertData.append(v)
-#                         
-#             cursobj.execute(insertStr, fixedInsertData)
-#             fxID = cursobj.lastrowid
-#             cnx.commit()
-#              
-#             # Add the fx to the experiment
-#             updateStr = 'update experiments set expFXID=%s where id=%s'
-#             updateData = (fxID, experimentIDX)
-#             cursobj.execute(updateStr, updateData)
-#             cnx.commit()
         # end of:  for sweep in sweeps:
     
-        ## Add the specimen feature extraction data to the database ##
+        ## Assemble the specimen feature extraction data ##
         specimenEphysFeaturesList = [f for f in allEphysFeatures if f['specimen_id'] == specimen]
         specimenEphysFeatures = specimenEphysFeaturesList[0]
          
-        # Source 2: ephys_data
         data_set = ctc.get_ephys_data(specCell['id'])
         sweeps = ctc.get_ephys_sweeps(specimen)
         sweep_numbers = defaultdict(list)
@@ -430,28 +365,8 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
         spFXs['v_rest']                      = specimenEphysFeatures['vrest']
         spFXs['vm_for_sag']                  = specimenEphysFeatures['vm_for_sag']
 
+        ## Add the specimen feature extraction data to the database ##
         addSpecFX(cnx, specimenTableID, spFXs)
-        
-#         for k,v in spFXs.items():
-#             if not isinstance(v, basestring):
-#                 if math.isnan(v):
-#                     spFXs[k] = None
-#                 
-#         keys = spFXs.keys()
-#         numKeys = len(keys)
-#         
-#         paramStrList = []
-#         insertData = [int(0), specimenTableID]
-#         for k,v in spFXs.items():
-#             paramStrList.append(k)
-#             insertData.append(v)
-#         s = ", "
-#         paramStr = s.join(paramStrList)
-#         insertStr = ('insert into specimenFXs (id, specID, ' + paramStr + 
-#                      ') values (' + '%s, '*(numKeys-1+2) + '%s)')
-#         cursobj.execute(insertStr, insertData)
-#         #specFXTableID = cursobj.lastrowid
-#         cnx.commit()
-        # end of:  for specimen in specimenList
+    # end of:  for specimen in specimenList
     
     cnx.close()
