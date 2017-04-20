@@ -192,11 +192,6 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
                    "  num_spikes = " + str(sweep['num_spikes']))
             print msg
     
-            if 'id' in sweep:
-                abiFXID = sweep['id']
-            else:
-                abiFXID = None
-
             # Screen out some sweep types because they are not suitable for our 
             #      simulations or because the stimulus type is not successful 
             #      in use of process_spikes() (which we use for simulations)

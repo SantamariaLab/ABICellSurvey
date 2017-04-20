@@ -52,7 +52,7 @@ def createExperimentsTable(connection):
              '''expIDX int(11) NOT NULL AUTO_INCREMENT, ''' + 
              '''specIDX int(11) NOT NULL, ''' +
              '''abiExpID int(11), ''' +
-             '''expFXID int(11), ''' +          
+             '''expFXIDX int(11), ''' +          
              '''sampling_rate int(11), ''' +
              '''stimulusType char(100), ''' + 
              '''stimCurrent double, ''' +
@@ -157,7 +157,6 @@ def createExperimentFXsTable(connection):
     mycmd = ('''CREATE TABLE experimentFXs (''' + 
              '''expFXIDX int(11) NOT NULL AUTO_INCREMENT, ''' +
              '''expIDX int(11) NOT NULL, ''' +  
-#              '''abiExpFXID int(11) NOT NULL, ''' +
              '''analysisStart double, ''' +                         #           in seconds
              '''analysisDuration double, ''' +                      #           in seconds
              '''stimulusStart double, ''' +                         # in seconds
@@ -225,7 +224,7 @@ def addSpecimen(connection, donorID, specimen):
 def addExperiment(connection, specimenTableIDX, sweepNum, samplingRate,
                   stimulusType, stimulusCurrent):
     insertStr = ('insert into experiments (expIDX, specIDX, ' + 
-                 'abiExpID, expFXID, sampling_rate, ' + 
+                 'abiExpID, expFXIDX, sampling_rate, ' + 
                  'stimulusType, stimCurrent) ' + 
                  'values (' +
                  '%s, '*6 + '%s' + 
@@ -289,8 +288,6 @@ def addExpFX(connection, experimentIDX, swFXs):
     insertStr = ('insert into experimentFXs (expFXIDX, expIDX, ' + paramStr + 
                  ') values (' + '%s, '*(numKeys-1+2) + '%s)')
     
-    print "insertStr", insertStr
-    print "insertData", insertData
     try:
         cursor = connection.cursor()
         cursor.execute(insertStr, insertData)
@@ -303,7 +300,7 @@ def addExpFX(connection, experimentIDX, swFXs):
 
     try:
         # Add the fx to the experiment
-        updateStr = 'update experiments set expFXID=%s where expIDX=%s'
+        updateStr = 'update experiments set expFXIDX=%s where expIDX=%s'
         updateData = (fxIDX, experimentIDX)
         cursor.execute(updateStr, updateData)
         cursor.close()
