@@ -13,11 +13,11 @@ def dropTable(connection,tableName):
 
 def createDonorsTable(connection):
     mycmd = ('''CREATE TABLE donors (''' + 
-             '''id int(11) NOT NULL AUTO_INCREMENT, ''' + 
+             '''donorIDX int(11) NOT NULL AUTO_INCREMENT, ''' + 
              '''abiDonorID int(11), ''' + 
              '''sex char(4), ''' + 
              '''name char(100), ''' + 
-             '''PRIMARY KEY (id)) ENGINE=InnoDB''')
+             '''PRIMARY KEY (donorIDX)) ENGINE=InnoDB''')
     try:
         cursor = connection.cursor()
         cursor.execute(mycmd)
@@ -31,11 +31,11 @@ def createDonorsTable(connection):
 
 def createSpecimensTable(connection):
     mycmd = ('''CREATE TABLE specimens (''' + 
-             '''id int(11) NOT NULL AUTO_INCREMENT, ''' + 
-             '''donorID int(11), ''' + 
+             '''specIDX int(11) NOT NULL AUTO_INCREMENT, ''' + 
+             '''donorIDX int(11), ''' + 
              '''abiSpecimenID int(11), ''' +
-             '''FOREIGN KEY (donorID) REFERENCES donors (id) ON DELETE CASCADE, ''' +  
-             '''PRIMARY KEY (id)) ENGINE=InnoDB''')
+             '''FOREIGN KEY (donorIDX) REFERENCES donors (donorIDX) ON DELETE CASCADE, ''' +  
+             '''PRIMARY KEY (specIDX)) ENGINE=InnoDB''')
     try:
         cursor = connection.cursor()
         cursor.execute(mycmd)
@@ -49,15 +49,15 @@ def createSpecimensTable(connection):
 
 def createExperimentsTable(connection):
     mycmd = ('''CREATE TABLE experiments (''' + 
-             '''id int(11) NOT NULL AUTO_INCREMENT, ''' + 
-             '''specimenIDX int(11) NOT NULL, ''' +
-             '''abiExperimentID int(11), ''' +
-             '''expFXID int(11), ''' +          # probably not necessary
+             '''expIDX int(11) NOT NULL AUTO_INCREMENT, ''' + 
+             '''specIDX int(11) NOT NULL, ''' +
+             '''abiExpID int(11), ''' +
+             '''expFXID int(11), ''' +          
              '''sampling_rate int(11), ''' +
              '''stimulusType char(100), ''' + 
              '''stimCurrent double, ''' +
-             '''FOREIGN KEY(specimenIDX) REFERENCES specimens(id) ON DELETE CASCADE, ''' + 
-             '''PRIMARY KEY (id)) ENGINE=InnoDB''')
+             '''FOREIGN KEY(specIDX) REFERENCES specimens(specIDX) ON DELETE CASCADE, ''' + 
+             '''PRIMARY KEY (expIDX)) ENGINE=InnoDB''')
     try:
         cursor = connection.cursor()
         cursor.execute(mycmd)
@@ -71,8 +71,8 @@ def createExperimentsTable(connection):
 
 def createSpecimenFXsTable(connection):
     mycmd = ('''CREATE TABLE specimenFXs (''' + 
-             '''id int(11) NOT NULL AUTO_INCREMENT, ''' + 
-             '''specID int(11) NOT NULL, ''' + 
+             '''specFXIDX int(11) NOT NULL AUTO_INCREMENT, ''' + 
+             '''specIDX int(11) NOT NULL, ''' + 
 #              '''abiFXID int(11) NOT NULL, ''' + 
              '''hasSpikes bool, ''' +                       # xcf-based
              '''hero_sweep_id int(11), ''' +                # ephys_features hero sweep 
@@ -140,8 +140,8 @@ def createSpecimenFXsTable(connection):
              '''upstroke_downstroke_ratio_short_square double, ''' + # ephys_features
              '''v_rest double, ''' +                        # xcf ok or ephys_features?? 
              '''vm_for_sag double, ''' +                    # xcf ok
-             '''FOREIGN KEY(specID) REFERENCES specimens(id) ON DELETE CASCADE, ''' +
-             '''PRIMARY KEY (id)) ENGINE=InnoDB''')
+             '''FOREIGN KEY(specIDX) REFERENCES specimens(specIDX) ON DELETE CASCADE, ''' +
+             '''PRIMARY KEY (specFXIDX)) ENGINE=InnoDB''')
     try:
         cursor = connection.cursor()
         cursor.execute(mycmd)
@@ -155,13 +155,17 @@ def createSpecimenFXsTable(connection):
 
 def createExperimentFXsTable(connection):
     mycmd = ('''CREATE TABLE experimentFXs (''' + 
-             '''id int(11) NOT NULL AUTO_INCREMENT, ''' +
-             '''expID int(11) NOT NULL, ''' +  
-             '''abiFXID int(11) NOT NULL, ''' +
+             '''expFXIDX int(11) NOT NULL AUTO_INCREMENT, ''' +
+             '''expIDX int(11) NOT NULL, ''' +  
+#              '''abiExpFXID int(11) NOT NULL, ''' +
              '''analysisStart double, ''' +                         #           in seconds
              '''analysisDuration double, ''' +                      #           in seconds
+             '''stimulusStart double, ''' +                         # in seconds
              '''adaptation double, ''' +                            # xcf ok    
              '''avgFiringRate double, ''' +                         # xcf ok    spikes per second
+             '''avgHlfHgtWidth double, ''' +                        # units???
+             '''baseV double, ''' +                                 # mV
+             '''maxSpkV double, ''' +
              '''hasSpikes bool, ''' +                               # xcf ok    1=true;0=false
              '''numSpikes int(11), ''' +                            # xcf ok    
              '''hasBursts bool, ''' +                               #           1=true;0=false                                   
@@ -176,12 +180,11 @@ def createExperimentFXsTable(connection):
              '''ISIFirst double, ''' +                              # xcf ok    in seconds
              '''ISIMean double, ''' +                               # xcf ok    in seconds
              '''ISICV double, ''' +                                 # xcf ok    dimensionless
-             '''averageSpikePeak double, ''' +                      #           in milliVolts
              '''latency double, ''' +                               # xcf ok    in seconds
              '''stimulusLatency double, ''' +                       # xcf ok    in seconds
-             '''threshold double, ''' +                             #           in milliVolts
-             '''FOREIGN KEY(expID) REFERENCES experiments(id) ON DELETE CASCADE, ''' +
-             '''PRIMARY KEY (id)) ENGINE=InnoDB''')
+             '''frstSpkThresholdV double, ''' +                     #           in milliVolts
+             '''FOREIGN KEY(expIDX) REFERENCES experiments(expIDX) ON DELETE CASCADE, ''' +
+             '''PRIMARY KEY (expFXIDX)) ENGINE=InnoDB''')
     try:
         cursor = connection.cursor()
         cursor.execute(mycmd)
@@ -194,19 +197,19 @@ def createExperimentFXsTable(connection):
 
 
 def addSpecimen(connection, donorID, specimen):
-    queryStr = 'select id from donors where abiDonorID=' + str(donorID)
+    queryStr = 'select donorIDX from donors where abiDonorID=' + str(donorID)
     try:
         cursor = connection.cursor()
         cursor.execute(queryStr)
         row = cursor.fetchone()
-        donorID = row[0]
+        donorIDX = row[0]
     except:
         cursor.close()
         return(-1)
 
-    insertStr = ('insert into specimens (id, donorID, abiSpecimenID) ' + 
+    insertStr = ('insert into specimens (specIDX, donorIDX, abiSpecimenID) ' + 
                  'values (%s, %s, %s)')
-    insertData = (0, donorID, specimen)
+    insertData = (0, donorIDX, specimen)
     try:
         cursor.execute(insertStr, insertData)
         specimenTableID = cursor.lastrowid
@@ -214,14 +217,15 @@ def addSpecimen(connection, donorID, specimen):
         connection.commit()
         return(specimenTableID)
     except:
+        print "Failure adding to specimens table"
         cursor.close()
         return(-1)
 
 
 def addExperiment(connection, specimenTableIDX, sweepNum, samplingRate,
                   stimulusType, stimulusCurrent):
-    insertStr = ('insert into experiments (id, specimenIDX, ' + 
-                 'abiExperimentID, expFXID, sampling_rate, ' + 
+    insertStr = ('insert into experiments (expIDX, specIDX, ' + 
+                 'abiExpID, expFXID, sampling_rate, ' + 
                  'stimulusType, stimCurrent) ' + 
                  'values (' +
                  '%s, '*6 + '%s' + 
@@ -236,6 +240,7 @@ def addExperiment(connection, specimenTableIDX, sweepNum, samplingRate,
         connection.commit()
         return(experimentIDX)
     except:
+        print "Failure adding to experiments table"
         cursor.close()
         return(-1)
 
@@ -247,53 +252,24 @@ def addDonor(connection, abiDonorID, sex, name):
         cursor.execute(queryStr)
         row = cursor.fetchone()
         if row is None:
-            insertStr = ('insert into donors (id, abiDonorID, sex, name) ' +
+            insertStr = ('insert into donors (donorIDX, abiDonorID, sex, name) ' +
                          ' values(%s, %s, %s, %s)')
             insertData = (0, abiDonorID, sex, name)
             cursor.execute(insertStr, insertData)
-            donorID = cursor.lastrowid
+            donorIDX = cursor.lastrowid
             connection.commit()
-            return(donorID)
+            return(donorIDX)
         else:
-            donorID = row[0]
+            donorIDX = row[0]
             cursor.close()
-            return(donorID)
+            return(donorIDX)
     except:
+        print "Failure adding to donors table"
         cursor.close()
         return(-1)
 
 import math
 def addExpFX(connection, experimentIDX, swFXs):
-    ## Add the feature extraction to the database ##
-#     insertStr = ('insert into experimentFXs (' + 
-#                  'id, expID, abiFXID, analysisStart, analysisDuration, ' + 
-#                  'adaptation, avgFiringRate, ' + 
-#                  'hasSpikes, numSpikes, ' + 
-#                  'hasBursts, numBursts, maxBurstiness, ' + 
-#                  'hasPauses, numPauses, pauseFraction, ' +
-#                  'hasDelay, delayRatio, delayTau, ' +
-#                  'first_isi, mean_isi, isi_cv, f_peak, latency, threshold) ' + 
-#                  'values(' + 
-#                  '%s, '*23 + '%s)')
-#     insertData = (0, experimentIDX, abiFXID,
-#                   analysis_start, analysis_duration,  
-#                   swFXs['adaptation'], swFXs['avgFiringRate'], 
-#                   swFXs['hasSpikes'], int(swFXs['numSpikes']), 
-#                   swFXs['hasBursts'], int(swFXs['numBursts']), 
-#                   swFXs['maxBurstiness'], swFXs['hasPauses'], 
-#                   int(swFXs['numPauses']), swFXs['pauseFraction'], 
-#                   swFXs['hasDelay'], swFXs['delayRatio'], 
-#                   swFXs['delayTau'], swFXs['ISIFirst'], swFXs['ISIMean'], 
-#                   swFXs['ISICV'], swFXs['averageSpikePeak'], 
-#                   swFXs['latency'], swFXs['threshold'])
-#     fixedInsertData = []
-#     for v in insertData:
-#         if not isinstance(v, basestring):
-#             if isinstance(v, float):
-#                 if math.isnan(v):
-#                     v = None
-#         fixedInsertData.append(v)
-
     for k,v in swFXs.items():
         if not isinstance(v, basestring):
             if isinstance(v, float):
@@ -310,27 +286,31 @@ def addExpFX(connection, experimentIDX, swFXs):
         insertData.append(v)
     s = ", "
     paramStr = s.join(paramStrList)
-    insertStr = ('insert into experimentFXs (id, expID, ' + paramStr + 
+    insertStr = ('insert into experimentFXs (expFXIDX, expIDX, ' + paramStr + 
                  ') values (' + '%s, '*(numKeys-1+2) + '%s)')
+    
     print "insertStr", insertStr
-    print "insertData", insertData 
+    print "insertData", insertData
     try:
         cursor = connection.cursor()
         cursor.execute(insertStr, insertData)
-        fxID = cursor.lastrowid
+        fxIDX = cursor.lastrowid
         connection.commit()
+    except:
+        print "Failure adding to experimentFXs table"
+        cursor.close()
+        return(-1)
 
-        print "fxID", fxID
-
+    try:
         # Add the fx to the experiment
-        updateStr = 'update experiments set expFXID=%s where id=%s'
-        updateData = (fxID, experimentIDX)
+        updateStr = 'update experiments set expFXID=%s where expIDX=%s'
+        updateData = (fxIDX, experimentIDX)
         cursor.execute(updateStr, updateData)
         cursor.close()
         connection.commit()
-        return(fxID)
+        return(fxIDX)
     except:
-        print "Failure adding to experimentFX table"
+        print "Failure adding expFX to experiments table"
         cursor.close()
         return(-1)
     
@@ -351,20 +331,21 @@ def addSpecFX(connection, specimenTableID, spFXs):
         insertData.append(v)
     s = ", "
     paramStr = s.join(paramStrList)
-    insertStr = ('insert into specimenFXs (id, specID, ' + paramStr + 
+    insertStr = ('insert into specimenFXs (specFXIDX, specIDX, ' + paramStr + 
                  ') values (' + '%s, '*(numKeys-1+2) + '%s)')
+    print "insertStr", insertStr
+    print "insertData", insertData
+
     try:
         cursor = connection.cursor()
         cursor.execute(insertStr, insertData)
-        specFXTableID = cursor.lastrowid
+        specFXTableIDX = cursor.lastrowid
         cursor.close()
         connection.commit()
-        return(specFXTableID)
+        return(specFXTableIDX)
     except:
+        print "Failure adding specFX to specimenFXs table"
         cursor.close()
         return(-1)
-
-
-
 
 

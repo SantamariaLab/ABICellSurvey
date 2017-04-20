@@ -282,7 +282,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
 
             if swFXs['hasDelay']: cellHasDelays = True
 
-            swFXs['abiFXID'] = abiFXID
+#             swFXs['abiFXID'] = abiFXID
 
             ## Add the feature extraction to the database ##
             expFXs = dict(swFXs)
