@@ -16,8 +16,8 @@ verbose = True  # Lots of status printing
 #isNMRemote = False
 
 # Choose specimens and experiments; these are just for testing
-specimens = [321707905, 469753383]
-#specimens = [484635029]
+#specimens = [321707905, 469753383]
+specimens = [484635029]
 # specimens = [318808427]
 # specimens = [321707905] # Hopefully has bursts (no, but has delays/pauses)
 # specimens = [

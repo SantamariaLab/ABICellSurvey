@@ -196,11 +196,14 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
                 abiFXID = sweep['id']
             else:
                 abiFXID = None
-                
-            # Screen out most sweeps because they are not suitable for our 
+
+            # Screen out some sweep types because they are not suitable for our 
             #      simulations or because the stimulus type is not successful 
             #      in use of process_spikes() (which we use for simulations)
-            if sweep['stimulus_name'] not in ['Long Square']:
+            databaseList = ['Long Square', 'Short Square', 'Noise 1', 'Noise 2', 
+                            'Square - 2s Suprathreshold', 'Square - 0.5ms Subthreshold',
+                            'Short Square - Triple', 'Ramp', 'Ramp to Rheobase']
+            if sweep['stimulus_name'] not in databaseList:
                 print "    Stimulus type", sweep['stimulus_name'], "not supported."
                 continue
     
@@ -221,7 +224,13 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
                               sweepNum, samplingRate,
                               sweep_metadata['aibs_stimulus_name'],
                               float(sweep_metadata['aibs_stimulus_amplitude_pa'])))
-    
+
+            # Only Long Square is suitable for our simulations
+            fxOKList = ['Long Square']
+            if sweep['stimulus_name'] not in fxOKList:
+                print "    Stimulus type", sweep['stimulus_name'], "entered into database but not supported for feature extractions."
+                continue
+
             ## Create the experiment feature extraction data ## 
             # This approach seen at   
             # http://alleninstitute.github.io/AllenSDK/_static/examples/nb/
@@ -236,7 +245,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
             v = sweepData["response"][0:indexRange[1]+1] # in V
             i *= 1e12 # to pA
             v *= 1e3 # to mV
-            t = np.arange(0, len(v)) * (1.0 / samplingRate)
+            t = np.arange(0, len(v)) * (1.0 / samplingRate) # in seconds
          
             ###### Do the sweep's feature extraction #######
             # Determine the position and length of the analysis window with respect
