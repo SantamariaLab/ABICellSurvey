@@ -1,14 +1,8 @@
+# Creates the CellSurvey database given the required setup information
+
 def CreateDB(specimenList, databaseName, resetDB, manifestFile, 
              host, user, password, verbose):
-    # TODO: Tidy up; eliminate memory leaks; add final features; begin working on processing
-    # functions such as calculating statistics of each parameter
     
-    # Handle connection problems
-    # Handle bad inputs and specimen not found
-    # Pull out stimulus delays as defaults
-    
-    # http://stackoverflow.com/questions/17053435/mysql-connector-python-insert-python-variable-to-mysql-table    
-
     if verbose:
         print "CreateDB importing..."
         
@@ -21,7 +15,6 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
     
     import numpy as np
     from numpyconversion import NumpyMySQLConverter
-    #import math
     
     from CellSurveyTableOps import dropTable, createDonorsTable
     from CellSurveyTableOps import createSpecimensTable, createSpecimenFXsTable

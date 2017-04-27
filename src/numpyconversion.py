@@ -1,5 +1,5 @@
 # http://stackoverflow.com/questions/17053435/mysql-connector-python-insert-python-variable-to-mysql-table
-#import mysql.connector.conversion.MySQLConverter
+
 from mysql.connector.conversion import MySQLConverter
 
 class NumpyMySQLConverter(MySQLConverter):

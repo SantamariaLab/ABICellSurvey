@@ -1,3 +1,5 @@
+# Provides a MySQL database interface for CellSurvey operations 
+
 def dropTable(connection,tableName):
     try:
         mycmd = 'DROP TABLE ' + tableName
@@ -74,72 +76,72 @@ def createSpecimenFXsTable(connection):
     mycmd = ('''CREATE TABLE specimenFXs (''' + 
              '''specFXIDX int(11) NOT NULL AUTO_INCREMENT, ''' + 
              '''specIDX int(11) NOT NULL, ''' + 
-             '''hasSpikes bool, ''' +                       # xcf-based
-             '''hero_sweep_id int(11), ''' +                # ephys_features hero sweep 
-             '''hero_sweep_avg_firing_rate double, ''' +    # ephys_features hero sweep 
-             '''hero_sweep_adaptation double, ''' +         # ephys_features hero sweep 
-             '''hero_sweep_first_isi double, ''' +          # ephys_features hero sweep
-             '''hero_sweep_mean_isi double, ''' +           # ephys_features hero sweep
-             '''hero_sweep_median_isi double, ''' +         # ephys_features hero sweep
-             '''hero_sweep_isi_cv double, ''' +             # ephys_features hero sweep
-             '''hero_sweep_latency double, ''' +            # ephys_features hero sweep
-             '''hero_sweep_stim_amp double, ''' +           # ephys_features hero sweep
-             '''hero_sweep_v_baseline double, ''' +         # ephys_features hero sweep
-             '''dendrite_type char(15), ''' +               #   ***  
-             '''electrode_0_pa double, ''' +                # ephys_features 
-             '''f_i_curve_slope double, ''' +               # ephys_features
-             '''fast_trough_t_long_square double, ''' +     # ephys_features 
-             '''fast_trough_t_ramp double, ''' +            # ephys_features
-             '''fast_trough_t_short_square double, ''' +    # ephys_features
-             '''fast_trough_v_long_square double, ''' +     # ephys_features
-             '''fast_trough_v_ramp double, ''' +            # ephys_features
-             '''fast_trough_v_short_square double, ''' +    # ephys_features
-             '''has_bursts bool, ''' +                      # custom 
-             '''has_delays bool, ''' +                      # custom
-             '''has_pauses bool, ''' +                      # custom
-             '''hemisphere char(10), ''' +                  #   ***    
-             '''input_resistance_mohm double, ''' +                 # xcf ok 
-             '''peak_t_long_square double, ''' +            # ephys_features
-             '''peak_t_ramp double, ''' +                   # ephys_features
-             '''peak_t_short_square double, ''' +           # ephys_features
-             '''peak_v_long_square double, ''' +            # ephys_features
-             '''peak_v_ramp double, ''' +                   # ephys_features
-             '''peak_v_short_square double, ''' +           # ephys_features
-             '''reporter_status char(30), ''' +             #   ***
-             '''rheobase_current double, ''' +                      # xcf ok 
-             '''ri double, ''' +                            # ephys_features input_resistance
-             '''sagFraction double, ''' +                   # xcf ok
-             '''seal_gohm double, ''' +                     # ephys_features
-             '''slow_trough_t_long_square double, ''' +     # ephys_features
-             '''slow_trough_t_ramp double, ''' +            # ephys_features
-             '''slow_trough_t_short_square double, ''' +    # ephys_features
-             '''slow_trough_v_long_square double, ''' +     # ephys_features
-             '''slow_trough_v_ramp double, ''' +            # ephys_features
-             '''slow_trough_v_short_square double, ''' +    # ephys_features
-             '''structure_acronym char(20), ''' +           #   ***
-             '''structure_name char(50), ''' +              #   ***
-             '''tau double, ''' +                                    # xcf ok or ephys_features??
-             '''threshold_i_long_square double, ''' +       # ephys_features
-             '''threshold_i_ramp double, ''' +              # ephys_features
-             '''threshold_i_short_square double, ''' +      # ephys_features
-             '''threshold_t_long_square double, ''' +       # ephys_features
-             '''threshold_t_ramp double, ''' +              # ephys_features
-             '''threshold_t_short_square double, ''' +      # ephys_features
-             '''threshold_v_long_square double, ''' +       # ephys_features
-             '''threshold_v_ramp double, ''' +              # ephys_features
-             '''threshold_v_short_square double, ''' +      # ephys_features
-             '''transgenic_line char(30), ''' +             #   ***
-             '''trough_t_long_square double, ''' +          # ephys_features
-             '''trough_t_ramp double, ''' +                 # ephys_features
-             '''trough_t_short_square double, ''' +         # ephys_features
-             '''trough_v_long_square double, ''' +          # ephys_features
-             '''trough_v_ramp double, ''' +                 # ephys_features
-             '''trough_v_short_square double, ''' +         # ephys_features
-             '''upstroke_downstroke_ratio_long_square double, ''' +  # ephys_features
-             '''upstroke_downstroke_ratio_ramp double, ''' +         # ephys_features
-             '''upstroke_downstroke_ratio_short_square double, ''' + # ephys_features
-             '''v_rest double, ''' +                        # xcf ok or ephys_features?? 
-             '''vm_for_sag double, ''' +                    # xcf ok
+             '''hasSpikes bool, ''' +                       
+             '''hero_sweep_id int(11), ''' +                 
+             '''hero_sweep_avg_firing_rate double, ''' +     
+             '''hero_sweep_adaptation double, ''' +          
+             '''hero_sweep_first_isi double, ''' +          
+             '''hero_sweep_mean_isi double, ''' +           
+             '''hero_sweep_median_isi double, ''' +         
+             '''hero_sweep_isi_cv double, ''' +             
+             '''hero_sweep_latency double, ''' +            
+             '''hero_sweep_stim_amp double, ''' +           
+             '''hero_sweep_v_baseline double, ''' +         
+             '''dendrite_type char(15), ''' +                 
+             '''electrode_0_pa double, ''' +                 
+             '''f_i_curve_slope double, ''' +               
+             '''fast_trough_t_long_square double, ''' +      
+             '''fast_trough_t_ramp double, ''' +            
+             '''fast_trough_t_short_square double, ''' +    
+             '''fast_trough_v_long_square double, ''' +     
+             '''fast_trough_v_ramp double, ''' +            
+             '''fast_trough_v_short_square double, ''' +    
+             '''has_bursts bool, ''' +                       
+             '''has_delays bool, ''' +                      
+             '''has_pauses bool, ''' +                      
+             '''hemisphere char(10), ''' +                      
+             '''input_resistance_mohm double, ''' +          
+             '''peak_t_long_square double, ''' +            
+             '''peak_t_ramp double, ''' +                   
+             '''peak_t_short_square double, ''' +           
+             '''peak_v_long_square double, ''' +            
+             '''peak_v_ramp double, ''' +                   
+             '''peak_v_short_square double, ''' +           
+             '''reporter_status char(30), ''' +             
+             '''rheobase_current double, ''' +               
+             '''ri double, ''' +                            
+             '''sagFraction double, ''' +                   
+             '''seal_gohm double, ''' +                     
+             '''slow_trough_t_long_square double, ''' +     
+             '''slow_trough_t_ramp double, ''' +            
+             '''slow_trough_t_short_square double, ''' +    
+             '''slow_trough_v_long_square double, ''' +     
+             '''slow_trough_v_ramp double, ''' +            
+             '''slow_trough_v_short_square double, ''' +    
+             '''structure_acronym char(20), ''' +           
+             '''structure_name char(50), ''' +              
+             '''tau double, ''' +                           
+             '''threshold_i_long_square double, ''' +       
+             '''threshold_i_ramp double, ''' +              
+             '''threshold_i_short_square double, ''' +      
+             '''threshold_t_long_square double, ''' +       
+             '''threshold_t_ramp double, ''' +              
+             '''threshold_t_short_square double, ''' +      
+             '''threshold_v_long_square double, ''' +       
+             '''threshold_v_ramp double, ''' +              
+             '''threshold_v_short_square double, ''' +      
+             '''transgenic_line char(30), ''' +             
+             '''trough_t_long_square double, ''' +          
+             '''trough_t_ramp double, ''' +                 
+             '''trough_t_short_square double, ''' +         
+             '''trough_v_long_square double, ''' +          
+             '''trough_v_ramp double, ''' +                 
+             '''trough_v_short_square double, ''' +         
+             '''upstroke_downstroke_ratio_long_square double, ''' +  
+             '''upstroke_downstroke_ratio_ramp double, ''' +         
+             '''upstroke_downstroke_ratio_short_square double, ''' + 
+             '''v_rest double, ''' +                         
+             '''vm_for_sag double, ''' +                    
              '''FOREIGN KEY(specIDX) REFERENCES specimens(specIDX) ON DELETE CASCADE, ''' +
              '''PRIMARY KEY (specFXIDX)) ENGINE=InnoDB''')
     try:
@@ -157,31 +159,31 @@ def createExperimentFXsTable(connection):
     mycmd = ('''CREATE TABLE experimentFXs (''' + 
              '''expFXIDX int(11) NOT NULL AUTO_INCREMENT, ''' +
              '''expIDX int(11) NOT NULL, ''' +  
-             '''analysisStart double, ''' +                         #           in seconds
-             '''analysisDuration double, ''' +                      #           in seconds
-             '''stimulusStart double, ''' +                         # in seconds
-             '''adaptation double, ''' +                            # xcf ok    
-             '''avgFiringRate double, ''' +                         # xcf ok    spikes per second
-             '''avgHlfHgtWidth double, ''' +                        # units???
-             '''baseV double, ''' +                                 # mV
+             '''analysisStart double, ''' +                         
+             '''analysisDuration double, ''' +                      
+             '''stimulusStart double, ''' +                         
+             '''adaptation double, ''' +                                
+             '''avgFiringRate double, ''' +                         
+             '''avgHlfHgtWidth double, ''' +                        
+             '''baseV double, ''' +                                 
              '''maxSpkV double, ''' +
-             '''hasSpikes bool, ''' +                               # xcf ok    1=true;0=false
-             '''numSpikes int(11), ''' +                            # xcf ok    
-             '''hasBursts bool, ''' +                               #           1=true;0=false                                   
-             '''numBursts int(11), ''' +                            #
-             '''maxBurstiness double, ''' +                         #
-             '''hasPauses bool, ''' +                               #           1=true;0=false
-             '''numPauses int(11), ''' +                            #           
-             '''pauseFraction double, ''' +                         #           %
-             '''hasDelay bool, ''' +                                #           
-             '''delayRatio double, ''' +                            #           
-             '''delayTau double, ''' +                              #           
-             '''ISIFirst double, ''' +                              # xcf ok    in seconds
-             '''ISIMean double, ''' +                               # xcf ok    in seconds
-             '''ISICV double, ''' +                                 # xcf ok    dimensionless
-             '''latency double, ''' +                               # xcf ok    in seconds
-             '''stimulusLatency double, ''' +                       # xcf ok    in seconds
-             '''frstSpkThresholdV double, ''' +                     #           in milliVolts
+             '''hasSpikes bool, ''' +                               
+             '''numSpikes int(11), ''' +                                
+             '''hasBursts bool, ''' +                                                                  
+             '''numBursts int(11), ''' +                            
+             '''maxBurstiness double, ''' +                         
+             '''hasPauses bool, ''' +                               
+             '''numPauses int(11), ''' +                                       
+             '''pauseFraction double, ''' +                         
+             '''hasDelay bool, ''' +                                           
+             '''delayRatio double, ''' +                                       
+             '''delayTau double, ''' +                                         
+             '''ISIFirst double, ''' +                              
+             '''ISIMean double, ''' +                               
+             '''ISICV double, ''' +                                 
+             '''latency double, ''' +                               
+             '''stimulusLatency double, ''' +                       
+             '''frstSpkThresholdV double, ''' +                     
              '''FOREIGN KEY(expIDX) REFERENCES experiments(expIDX) ON DELETE CASCADE, ''' +
              '''PRIMARY KEY (expFXIDX)) ENGINE=InnoDB''')
     try:

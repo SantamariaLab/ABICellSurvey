@@ -1,19 +1,19 @@
+# Sets up for, then creates or adds to a local ABICellSurvey MySQL database
+
 print "Starting script CreateCSdb"
 
-import CSdbconfig as cfg
+# Import your own config file
+import CSdbconfigdbs as cfg
 from ABICellSurvey import CreateDB
 
 databaseName = 'ABICellSurvey'
+manifestFile = cfg.mysql['manifestpath']
 
-manifestFile = ('C:/Users/David/Dropbox/Documents/SantamariaLab/Projects/Fractional/ABI-FLIF/Cache/' +
-                'cell_types/cell_types_manifest.json')
-# manifestFile = ('C:/Users/David/Dropbox/Documents/'
-#                 + 'SantamariaLab/Projects/Fractional/ABI-FLIF/FeatExtractDev/'
-#                 + 'cell_types/cell_types_manifest.json')
-resetDB = True  # True/False; redo all tables or add to them?
-verbose = True  # Lots of status printing
+# True/False; redo all tables or add to them?
+resetDB = True  
 
-#isNMRemote = False
+# True = lots of status printing; see also the PP switch in ExtractSweepFeatures
+verbose = True  
 
 # Choose specimens and experiments; these are just for testing
 #specimens = [321707905, 469753383]
@@ -27,7 +27,8 @@ specimens = [484635029]
 #             469801569,
 #             469753383]
 # specimens = [312883165, 484635029]
-# specimens with models only 
+
+# specimens with models only as of sometime in 2016
 # specimens = [
 #             484635029,
 #             469801569,

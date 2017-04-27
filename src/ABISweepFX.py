@@ -1,8 +1,5 @@
-# Sweep feature extraction module
+# Sweep feature extraction module for CellSurvey database construction
 import numpy as np
-
-# Extract the features of the sweep from the input data
-# time in seconds, voltage in mV, current in pA
 try:
 	#	if isNMRemote:
 	from feature_extractor import EphysFeatureExtractor
@@ -26,7 +23,7 @@ def getABIAnalysisPoints(stimType):
 	
 	# stim_duration (as listed in the documentation for, say, process_instance)
 	# is apparently effectively analysis_duration which 
-	# is a bad assumption imho since there may be results that occur or persist
+	# is not ideal imho since there may be results that occur or persist
 	# after the stimulus is complete. Easy example: using 3 msec duration on 
 	# short square misses the cell's spike.  and in fact, it doesn't seem possible
 	# to calculate the beginning of the pulse from anything but doing analysis 
@@ -34,6 +31,8 @@ def getABIAnalysisPoints(stimType):
 	# So instead, we use hard-coded values that match those used by ABI in the
 	# stimulus signal design; there are easily changed by the user.
 
+	# See comments in ABICellSurvey: at this point we are really only using 
+	#  Long Square
 	analysisPoints = {}
 	addlAnalysisDuration = 0.2  # i.e., 20% past
 	# No switch statement in Python
@@ -63,6 +62,7 @@ def getABIAnalysisPoints(stimType):
 		analysisPoints['analysisDuration'] = 1.0
 		return(analysisPoints)
 
+	# Has issues with feature extraction
 	if stimType == 'Short Square':
 		stimulusStart = 1.02
 		stimulusDuration = 0.003
@@ -88,7 +88,7 @@ def getABIAnalysisPoints(stimType):
 
 def ExtractSweepFeatures(time, voltage, stimulus, analysisStart, 
 						 analysisDuration, stimulusStart, verbose):
-	usePP = True
+	usePP = False
 	if usePP:
 		from pprint import pprint # temporary
 	
@@ -163,16 +163,11 @@ def ExtractSweepFeatures(time, voltage, stimulus, analysisStart,
 		else:
 			maxSpkV = None  
 		
-
-		#print "Sweep processing now" 
 		# Following approach seen in the code at 
 		# https://alleninstitute.github.io/AllenSDK/_modules/allensdk/ephys/ephys_extractor.html#EphysSweepFeatureExtractor._process_spike_related_features
 		analysisEnd = analysisStart + analysisDuration
 		sfx = EphysSweepFeatureExtractor(t=time, v=voltage, i=stimulus, 
 										 start=analysisStart, end=analysisEnd)
-		# process_spikes() does not appear to work if fewer than 2
-		# We use values obtained here to trump any obtained above.
-	#	if numSpikes >= 2:  
 		try:
 			if verbose:
 				print "Processing spikes now"
@@ -304,36 +299,36 @@ def ExtractSweepFeatures(time, voltage, stimulus, analysisStart,
 
 	# Fill a dictionary with the results and then save to file
 	features = dict()
-	features['analysisStart']       = analysisStart								# in seconds
-	features['analysisDuration']    = analysisDuration							# in seconds
-	features['stimulusStart']		= stimulusStart								# in seconds
-	features['adaptation']          = adaptation								# 
-	features['avgFiringRate']       = avgFiringRate								# spikes per second
-	features['avgHlfHgtWidth']      = avgHlfHgtWidth							# in seconds
-	features['baseV']				= baseV										# mV
-	features['maxSpkV']      		= maxSpkV									# mV
-	features['ISIFirst']            = ISIFirst									# in milliseconds
-	features['ISIMean']             = ISIMean									# in milliseconds
-	features['ISICV']               = ISICV										# dimensionless
-	features['latency']             = latency									# latencies are in msec
+	features['analysisStart']       = analysisStart								
+	features['analysisDuration']    = analysisDuration							
+	features['stimulusStart']		= stimulusStart								
+	features['adaptation']          = adaptation								 
+	features['avgFiringRate']       = avgFiringRate								
+	features['avgHlfHgtWidth']      = avgHlfHgtWidth							
+	features['baseV']				= baseV										
+	features['maxSpkV']      		= maxSpkV									
+	features['ISIFirst']            = ISIFirst									
+	features['ISIMean']             = ISIMean									
+	features['ISICV']               = ISICV										
+	features['latency']             = latency									
 	# stimulusLatency is from stimulus start to the first spike threshold		
 	if latency is not None:
 		features['stimulusLatency'] = latency - (stimulusStart - analysisStart)*1000
 	else:
 		features['stimulusLatency'] = None
 
-	features['frstSpkThresholdV']	= frstSpkThresholdV							# mV
-	features['hasSpikes']           = hasSpikes                                   # 1=true;0=false
-	features['numSpikes']           = numSpikes                                   # 
-	features['hasBursts']           = hasBursts                                   # 1=true;0=false
-	features['numBursts']           = numBursts                                   #
-	features['maxBurstiness']       = maxBurstiness                               #
-	features['hasPauses']           = hasPauses                                   # 1=true;0=false
-	features['numPauses']           = numPauses                                   #
-	features['pauseFraction']       = pauseFraction                               #
-	features['hasDelay']            = hasDelay   								  # 
-	features['delayRatio']          = delayRatio                                  #
-	features['delayTau']            = delayTau                                    #
+	features['frstSpkThresholdV']	= frstSpkThresholdV							
+	features['hasSpikes']           = hasSpikes                                 
+	features['numSpikes']           = numSpikes                                  
+	features['hasBursts']           = hasBursts                                 
+	features['numBursts']           = numBursts                                 
+	features['maxBurstiness']       = maxBurstiness                             
+	features['hasPauses']           = hasPauses                                 
+	features['numPauses']           = numPauses                                 
+	features['pauseFraction']       = pauseFraction                             
+	features['hasDelay']            = hasDelay   								 
+	features['delayRatio']          = delayRatio                                
+	features['delayTau']            = delayTau                                  
 
 	features['spikeData'] = []
 	if numSpikes > 0:

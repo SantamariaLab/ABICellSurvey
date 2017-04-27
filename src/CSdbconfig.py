@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# import preprocessing
+# Provides basic configuration information for the CellSurvey database
+# construction.  Note: this approach is not necessarily best practice; it is
+# simple and convenient for these purposes.  There are other approaches that 
+# provide better security. 
 mysql = {'host': 'localhost',
          'user': 'root',
-         'password': 'xxx'}
-# preprocessing_queue = [preprocessing.scale_and_center,
-#                        preprocessing.dot_reduction,
-#                        preprocessing.connect_lines]
-use_anonymous = True
+         'password': 'xxx',
+         'manifestpath':'your manifest file path including filename here'}
