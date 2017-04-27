@@ -173,7 +173,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
                 
         # Add the specimen to the database
         donorID = specCell['donor_id']
-        specimenTableID = addSpecimen(cnx, donorID, specimen)
+        specimenTableIDX = addSpecimen(cnx, donorID, specimen)
     
         ####### SPECIMEN >>> SWEEPS/EXPERIMENTS #######
         # Change these to true if show in any sweep 
@@ -215,7 +215,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
             
             # Add the experiment to the database
             experimentIDX = (#
-                addExperiment(cnx, specimenTableID, 
+                addExperiment(cnx, specimenTableIDX, 
                               sweepNum, samplingRate,
                               sweep_metadata['aibs_stimulus_name'],
                               float(sweep_metadata['aibs_stimulus_amplitude_pa'])))
@@ -370,7 +370,7 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
         spFXs['vm_for_sag']                  = specimenEphysFeatures['vm_for_sag']
 
         ## Add the specimen feature extraction data to the database ##
-        addSpecFX(cnx, specimenTableID, spFXs)
+        addSpecFX(cnx, specimenTableIDX, spFXs)
     # end of:  for specimen in specimenList
     
     cnx.close()

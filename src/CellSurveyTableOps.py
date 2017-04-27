@@ -34,6 +34,7 @@ def createSpecimensTable(connection):
              '''specIDX int(11) NOT NULL AUTO_INCREMENT, ''' + 
              '''donorIDX int(11), ''' + 
              '''abiSpecimenID int(11), ''' +
+             '''specFXIDX int(11), ''' +
              '''FOREIGN KEY (donorIDX) REFERENCES donors (donorIDX) ON DELETE CASCADE, ''' +  
              '''PRIMARY KEY (specIDX)) ENGINE=InnoDB''')
     try:
@@ -73,7 +74,6 @@ def createSpecimenFXsTable(connection):
     mycmd = ('''CREATE TABLE specimenFXs (''' + 
              '''specFXIDX int(11) NOT NULL AUTO_INCREMENT, ''' + 
              '''specIDX int(11) NOT NULL, ''' + 
-#              '''abiFXID int(11) NOT NULL, ''' + 
              '''hasSpikes bool, ''' +                       # xcf-based
              '''hero_sweep_id int(11), ''' +                # ephys_features hero sweep 
              '''hero_sweep_avg_firing_rate double, ''' +    # ephys_features hero sweep 
@@ -206,9 +206,9 @@ def addSpecimen(connection, donorID, specimen):
         cursor.close()
         return(-1)
 
-    insertStr = ('insert into specimens (specIDX, donorIDX, abiSpecimenID) ' + 
-                 'values (%s, %s, %s)')
-    insertData = (0, donorIDX, specimen)
+    insertStr = ('insert into specimens (specIDX, donorIDX, abiSpecimenID, specFXIDX) ' + 
+                 'values (%s, %s, %s, %s)')
+    insertData = (0, donorIDX, specimen, None)
     try:
         cursor.execute(insertStr, insertData)
         specimenTableID = cursor.lastrowid
@@ -310,9 +310,9 @@ def addExpFX(connection, experimentIDX, swFXs):
         print "Failure adding expFX to experiments table"
         cursor.close()
         return(-1)
-    
 
-def addSpecFX(connection, specimenTableID, spFXs):
+import mysql.connector    
+def addSpecFX(connection, specIDX, spFXs):
     for k,v in spFXs.items():
         if not isinstance(v, basestring):
             if math.isnan(v):
@@ -322,7 +322,7 @@ def addSpecFX(connection, specimenTableID, spFXs):
     numKeys = len(keys)
     
     paramStrList = []
-    insertData = [int(0), specimenTableID]
+    insertData = [int(0), specIDX]
     for k,v in spFXs.items():
         paramStrList.append(k)
         insertData.append(v)
@@ -330,19 +330,28 @@ def addSpecFX(connection, specimenTableID, spFXs):
     paramStr = s.join(paramStrList)
     insertStr = ('insert into specimenFXs (specFXIDX, specIDX, ' + paramStr + 
                  ') values (' + '%s, '*(numKeys-1+2) + '%s)')
-    print "insertStr", insertStr
-    print "insertData", insertData
 
     try:
         cursor = connection.cursor()
         cursor.execute(insertStr, insertData)
-        specFXTableIDX = cursor.lastrowid
-        cursor.close()
+        specFXIDX = cursor.lastrowid
         connection.commit()
-        return(specFXTableIDX)
     except:
         print "Failure adding specFX to specimenFXs table"
         cursor.close()
         return(-1)
 
+    try:
+        # Add the fx to the specimen
+        updateStr = 'update specimens set specFXIDX=%s where specIDX=%s'
+        updateData = (specFXIDX, specIDX)
+        cursor.execute(updateStr, updateData)
+        cursor.close()
+        connection.commit()
+        return(specFXIDX)
+    except mysql.connector.Error as err:
+        print "Failure adding specFX to specimens table"
+        print "err", err
+        cursor.close()
+        return(-1)
 
