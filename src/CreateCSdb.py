@@ -3,7 +3,7 @@ print "Starting script CreateCSdb"
 import CSdbconfig as cfg
 from ABICellSurvey import CreateDB
 
-databaseName = 'ABICellSurvey2'
+databaseName = 'ABICellSurvey'
 
 manifestFile = ('C:/Users/David/Dropbox/Documents/SantamariaLab/Projects/Fractional/ABI-FLIF/Cache/' +
                 'cell_types/cell_types_manifest.json')
