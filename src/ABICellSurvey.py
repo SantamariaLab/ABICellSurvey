@@ -92,16 +92,16 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
         result = createSpecimenFXsTable(cnx)
         if verbose:
             if result:
-                print "Specimens Table created"
+                print "SpecimenFXs Table created"
             else:
-                print "There was a problem creating the Specimens Table"
+                print "There was a problem creating the SpecimenFXs Table"
     
         result = createExperimentFXsTable(cnx)
         if verbose:
             if result:
-                print "Experiments Table created"
+                print "ExperimentFXs Table created"
             else:
-                print "There was a problem creating the Experiments Table"
+                print "There was a problem creating the ExperimentFXs Table"
     
         
     # ====================================================================
