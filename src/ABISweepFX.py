@@ -1,3 +1,4 @@
+# ABISweepFX
 # Sweep feature extraction module for CellSurvey database construction
 import numpy as np
 try:
@@ -90,7 +91,7 @@ def ExtractSweepFeatures(time, voltage, stimulus, analysisStart,
 						 analysisDuration, stimulusStart, verbose):
 	usePP = False
 	if usePP:
-		from pprint import pprint # temporary
+		from pprint import pprint 
 
 	# This can be customized
 	featureList = ['analysisStart', 'analysisDuration', 'stimulusStart', 
@@ -102,7 +103,8 @@ def ExtractSweepFeatures(time, voltage, stimulus, analysisStart,
                    'hasDelay', 'delayRatio', 'delayTau']
 
 	# Following approach seen at 
-	# http://alleninstitute.github.io/AllenSDK/_static/examples/nb/cell_types.html#Computing-Electrophysiology-Features
+	# http://alleninstitute.github.io/AllenSDK/_static/examples/nb/cell_t
+	# ypes.html#Computing-Electrophysiology-Features
 	fx = EphysFeatureExtractor()
 	try:
 		fx.process_instance("", voltage, stimulus, time, 
@@ -117,6 +119,7 @@ def ExtractSweepFeatures(time, voltage, stimulus, analysisStart,
 		features['analysisDuration']    = analysisDuration
 		features['stimulusStart']		= stimulusStart
 		return(features)
+		# ============
 
 	# feature_data holds adapt, base_v, 
 	#   latency (first spike time - analysis window begin time), 
@@ -141,7 +144,7 @@ def ExtractSweepFeatures(time, voltage, stimulus, analysisStart,
 		if verbose: 
 			print "No spikes found"
 
-		# Impose No Spikes NULLS    
+		# Impose No Spikes NULLS (see User Guide)
 		avgFiringRate		= 0.0
 		features = dict()
 		for feature in featureList:
@@ -154,6 +157,7 @@ def ExtractSweepFeatures(time, voltage, stimulus, analysisStart,
 		features['numSpikes'] = numSpikes
 		features['hasSpikes'] = hasSpikes
 		return(features)
+		# ============
 
 	else:  # at least one spike
 		if 'half_height_width' in feature_data:
@@ -369,3 +373,4 @@ def ExtractSweepFeatures(time, voltage, stimulus, analysisStart,
 		print "FEATURES DICTIONARY ^^^"
 
 	return features
+	# ============
