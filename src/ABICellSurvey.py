@@ -265,17 +265,15 @@ def CreateDB(specimenList, databaseName, resetDB, manifestFile,
                 continue
             
             if swFXs['hasBursts']: cellHasBursts = True
-
             if swFXs['hasPauses']: cellHasPauses = True
-
             if swFXs['hasDelay']: cellHasDelays = True
-
-#             swFXs['abiFXID'] = abiFXID
 
             ## Add the feature extraction to the database ##
             expFXs = dict(swFXs)
             # individual spike data not going into the database directly
-            del expFXs['spikeData']   
+            if 'spikeData' in expFXs:
+                del expFXs['spikeData']
+                   
             addExpFX(cnx, experimentIDX, expFXs)
         # end of:  for sweep in sweeps:
     

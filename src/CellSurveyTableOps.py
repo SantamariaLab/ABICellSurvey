@@ -285,6 +285,7 @@ def addExpFX(connection, experimentIDX, swFXs):
     for k,v in swFXs.items():
         paramStrList.append(k)
         insertData.append(v)
+        
     s = ", "
     paramStr = s.join(paramStrList)
     insertStr = ('insert into experimentFXs (expFXIDX, expIDX, ' + paramStr + 
@@ -293,10 +294,12 @@ def addExpFX(connection, experimentIDX, swFXs):
     try:
         cursor = connection.cursor()
         cursor.execute(insertStr, insertData)
+        print "cursor", cursor
         fxIDX = cursor.lastrowid
         connection.commit()
-    except:
+    except mysql.connector.Error as err:
         print "Failure adding to experimentFXs table"
+        print(err)
         cursor.close()
         return(-1)
 
